@@ -30,17 +30,11 @@ one machine. It is explicitly **not** a production trading system.
 The latency numbers here will **not** match a real firm's. The point is the
 **architecture and the measurement discipline**, both of which transfer.
 
-## 🐧 Linux only
+## 💻 Cross-Platform Support
 
-The full engine is **Linux-only**. It depends on `pthread_setaffinity_np` for
-core pinning and Linux socket behavior for the loopback transport. macOS lacks
-the right primitives.
-
-The platform-independent components (TSC timing, histogram, lock-free SPSC
-queue, ITCH parser, order book, strategy, risk gate) **do** build and unit-test
-on macOS for development; networking and affinity code is compiled out via
-`HFT_LINUX`. For real end-to-end latency measurement, **build and run on
-Linux**, ideally with isolated CPUs (`isolcpus=`).
+This project builds and runs on both **macOS** and **Linux**:
+* **macOS (Development & Testing)**: Core components build and run natively. Since macOS lacks thread affinity controls, thread pinning is gracefully disabled, allowing easy local development, testing, and debugging.
+* **Linux (Production & Latency Benchmarking)**: Core pinning (`pthread_setaffinity_np`) is fully supported. For real end-to-end sub-microsecond latency measurement, compile and run on Linux with isolated CPU cores (`isolcpus=` and `nohz_full`).
 
 ---
 
@@ -73,33 +67,73 @@ Linux**, ideally with isolated CPUs (`isolcpus=`).
 
 ---
 
-## Building
+## 🚀 Step-by-Step Guide: How to Build & Run
 
-Requirements: **CMake ≥ 3.20**, a **C++20** compiler (GCC ≥ 11 or Clang ≥ 14).
-The hot path is compiled with `-O3 -march=native -flto`.
+### Step 1: Install Prerequisites
+Ensure you have **CMake ≥ 3.20** and a compiler supporting **C++20**:
+* **macOS**: Install Xcode Command Line Tools (`xcode-select --install`) and CMake (e.g., via Homebrew: `brew install cmake`).
+* **Linux**: Install GCC ≥ 11 or Clang ≥ 14, and CMake. (e.g., on Ubuntu: `sudo apt install build-essential cmake`).
 
+### Step 2: Build the Project
+Configure and compile in **Release** mode to enable optimizations (`-O3 -march=native -flto`):
 ```bash
+# 1. Configure CMake
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+# 2. Build the targets
 cmake --build build -j
+```
+
+### Step 3: Run Unit Tests & Sanitizers
+Confirm code correctness by running the unit test suite:
+```bash
+# Run tests
 ctest --test-dir build --output-on-failure
 ```
 
-### Build options
-| Option                | Default | Meaning                                              |
-|-----------------------|---------|------------------------------------------------------|
-| `HFT_NATIVE`          | `ON`    | `-march=native` (needed for honest latency numbers)  |
-| `HFT_LTO`             | `ON`    | Link-time optimization                               |
-| `HFT_WERROR`          | `ON`    | Warnings as errors                                   |
-| `HFT_SANITIZE`        | `OFF`   | ASan+UBSan build for **non-hot-path** tests          |
-| `HFT_TSAN`            | `OFF`   | ThreadSanitizer build for queue/concurrency tests    |
-| `HFT_BUILD_TESTS`     | `ON`    | Build + register unit tests                          |
-| `HFT_BUILD_BENCHMARKS`| `ON`    | Build microbenchmarks                                |
-
-Sanitizer run (correctness, not latency — sanitizers disable LTO):
+For memory safety and race condition verification, you can run sanitizer builds:
 ```bash
+# Address & Undefined Behavior Sanitizer (disables LTO)
 cmake -S . -B build-asan -DHFT_SANITIZE=ON -DHFT_LTO=OFF
 cmake --build build-asan -j && ctest --test-dir build-asan --output-on-failure
+
+# Thread Sanitizer
+cmake -S . -B build-tsan -DHFT_TSAN=ON -DHFT_LTO=OFF
+cmake --build build-tsan -j && ctest --test-dir build-tsan --output-on-failure
 ```
+
+### Step 4: Run the Latency Report (Single Process)
+Run the self-contained `latency_report` tool, which spins up both the simulated exchange and the engine within one process, communicating over loopback UDP:
+```bash
+# Run latency report for 2 seconds at 100k messages/sec
+./build/tools/latency_report --duration-ms 2000 --rate 100000 --batch 4
+```
+
+### Step 5: Run Standalone Processes (Two Terminals)
+Simulate a production environment by running the exchange and trading engine as separate, independent processes:
+1. **Terminal 1 (Exchange Simulator)**:
+   ```bash
+   ./build/tools/exchange_sim --rate 100000 --batch 4
+   ```
+2. **Terminal 2 (HFT Engine)**:
+   ```bash
+   ./build/apps/hft_main --config config/engine.example.json --duration-ms 5000
+   ```
+
+---
+
+### Build Options Reference
+Customize the build using `-D<OPTION>=ON/OFF` flags during configuration:
+
+| Option | Default | Description |
+|---|---|---|
+| `HFT_NATIVE` | `ON` | Compiles with `-march=native` for processor-specific optimizations. |
+| `HFT_LTO` | `ON` | Enables Link-Time Optimization (`-flto`). |
+| `HFT_WERROR` | `ON` | Treats compiler warnings as errors. |
+| `HFT_SANITIZE` | `OFF` | Enables Address + Undefined Behavior Sanitizers. |
+| `HFT_TSAN` | `OFF` | Enables Thread Sanitizer for concurrency safety. |
+| `HFT_BUILD_TESTS` | `ON` | Builds the unit tests. |
+| `HFT_BUILD_BENCHMARKS` | `ON` | Builds microbenchmarks. |
 
 ---
 
@@ -167,11 +201,12 @@ Reproduce: `./build/tools/latency_report --duration-ms 2000 --rate 100000 --batc
 
 ![end-to-end latency CDF](reports/figures/fig_e2e_cdf.png)
 
-*Tight body (p50 ≈ 1.3 µs, p90 ≈ 2.5 µs) with a long scheduler-driven tail.*
-See **[reports/](reports/README.md)** for all four figures — per-stage
-percentiles, isolated component costs, and the false-sharing surprise — each
-with a "how to read it / what it tells you" explanation, generated by the engine
-itself (`latency_report --csv-dir` → `reports/plot.py`).
+### Figure 1 — End-to-End Latency CDF (Cumulative Distribution Function)
+* **What this shows**: The cumulative probability distribution of end-to-end latency (from market-data message arrival in the feed handler to order wire-readiness in the gateway).
+* **How to read it**: Find a percentile (e.g. p50 or p99) on the vertical Y-axis, move horizontally to the curve, and read the latency on the horizontal X-axis (log-scale).
+* **Summary**: The core logic is fast with a tight body (p50 ≈ 1.3 µs, p90 ≈ 2.4 µs). The flat tail to the right (p99 ≈ 15 µs) is caused by OS scheduler preemption on unpinned macOS threads, not the codebase itself.
+
+See **[reports/README.md](file:///Users/lyonnlie/Documents/Programming_shi/high_frequency_trading_engine/reports/README.md)** for detailed analyses of all four performance graphs.
 
 ### Component microbenchmarks 
 
@@ -243,17 +278,14 @@ the textbook optimization **did not help** (which is the instructive part).
 **Experiments (measured, dev box M4 — `perf` is Linux-only, see below):**
 
 1. **Cache-line padding / false sharing — the textbook optimization *hurt* here.**
-   I A/B'd our padded SPSC against an unpadded one (producer/consumer positions
-   sharing a line). On the M4, **unpadded was ~3.5× faster** (padding = 0.25–0.30×,
-   consistent across 5 runs). Why: Apple Silicon P-cores live in separate
-   clusters and the dominant cost is *inter-cluster* cache-line transfer —
-   consolidating both positions onto one line means a single transfer carries
-   both, so fewer distinct lines cross the interconnect. **On x86 with a shared
-   L3 (the deployment target) false sharing is genuinely harmful and padding is
-   correct** — so I *kept the padding* but flagged this. Lesson: cache-layout
-   optimizations are platform-specific; validate on the target, don't cargo-cult.
+   We A/B tested our padded SPSC queue design against an unpadded design (where producer and consumer positions share the same cache line).
 
    ![false sharing on M4](reports/figures/fig_false_sharing.png)
+
+   ### Figure 4 — SPSC Queue False-Sharing Performance A/B
+   * **What this shows**: Cross-thread queue throughput (operations per second) comparing the padded queue design (red) against the unpadded queue design (green).
+   * **How to read it**: Taller bars show higher throughput (more queue operations completed per second).
+   * **Summary**: On Apple Silicon (M4), the unpadded design is ~3.8× faster because the producer and consumer cores reside in separate clusters; keeping both positions on one cache line minimizes inter-cluster transfer latency. For x86 target architectures with a shared L3 cache, false sharing is indeed harmful, so the padding is kept. This highlights the importance of validating optimizations on the target hardware.
 
 2. **Software prefetch — no effect.** Added `__builtin_prefetch` for the next
    SPSC buffer slot: **1.00–1.03×**, i.e. nothing. The hardware prefetcher
