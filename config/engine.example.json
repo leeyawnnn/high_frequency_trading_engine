@@ -1,0 +1,26 @@
+{
+  "_comment": "Example engine configuration. Core IDs are Linux CPU indices; pick isolated cores (isolcpus=) for honest numbers. See README.",
+  "cores": {
+    "feed_handler": 2,
+    "strategy":     3,
+    "order_gateway": 4
+  },
+  "network": {
+    "transport":        "udp",
+    "feed_mcast_addr":  "127.0.0.1",
+    "feed_port":        31337,
+    "order_addr":       "127.0.0.1",
+    "order_port":       31338,
+    "fill_port":        31339
+  },
+  "strategy": {
+    "symbol":            "TEST",
+    "imbalance_threshold": 0.30,
+    "order_size":        100
+  },
+  "risk": {
+    "max_position":      1000,
+    "max_order_size":    500,
+    "rate_limit_per_sec": 10000
+  }
+}

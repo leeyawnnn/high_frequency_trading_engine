@@ -1,0 +1,14 @@
+latency_report: rate=100000 msg/s batch=4 duration=4000ms (cores feed=-1 strat=-1 gw=-1 exch=-1)
+
+throughput: exchange sent 400106 feed msgs, engine processed 400106, orders sent 35925, fills matched 35925
+
+==================== latency report (nanoseconds) ====================
+  feed handler       n=400106     p50=0      p90=42     p99=83      p99.9=927     max=39810    mean=10
+  strategy           n=400106     p50=399    p90=719    p99=1279    p99.9=8703    max=429166   mean=352
+  gateway            n=35925      p50=0      p90=0      p99=42      p99.9=85      max=250      mean=3
+  ------------------------------------------------------------------
+  END-TO-END         n=35925      p50=1343   p90=2495   p99=15359   p99.9=44031   max=4172394  mean=2325
+  round trip         n=35925      p50=21503  p90=50175  p99=73727   p99.9=122879  max=4208954  mean=28180
+======================================================================
+
+CSV written to reports/data/

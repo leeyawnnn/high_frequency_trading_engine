@@ -1,0 +1,37 @@
+# Build artifacts
+build/
+build-*/
+cmake-build-*/
+out/
+
+# Compiled objects / binaries
+*.o
+*.obj
+*.a
+*.so
+*.dylib
+*.exe
+
+# Profiling / perf output
+perf.data
+perf.data.old
+*.svg
+*.folded
+callgrind.out.*
+*.prof
+
+# Latency captures
+*.hist
+latency_*.csv
+
+# Editor / OS cruft
+.DS_Store
+.vscode/
+.idea/
+.cache/
+compile_commands.json
+
+# Python bytecode (reports/plot.py)
+__pycache__/
+
+# Generated report figures/data are committed intentionally (see reports/).

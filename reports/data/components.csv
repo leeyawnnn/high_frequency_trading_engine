@@ -1,0 +1,7 @@
+component,ns_per_op,mops
+tsc_now,0.28,3571
+risk_gate_check,1.17,856
+histogram_record,1.84,544
+parse_message,0.48,2086
+book_apply,4.96,202
+strategy_on_md,5.48,182
