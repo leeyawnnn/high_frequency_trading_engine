@@ -23,75 +23,30 @@ plus `components.csv` and `false_sharing.csv` from the microbenchmarks).
 ## Figure 1 — End-to-end latency CDF
 ![e2e CDF](figures/fig_e2e_cdf.png)
 
-**What it is:** the cumulative distribution of end-to-end latency = from a
-market-data message's *arrival* (TSC-stamped in the feed handler) to the moment
-its resulting order is *ready for the wire* (in the gateway). One point per order
-emitted (~36k here). X is log-scale nanoseconds.
-
-**How to read it:** find a percentile on the Y axis, read across to the curve,
-read down to the latency. The dashed lines mark p50/p90/p99. A curve that rises
-steeply and then has a long flat shoulder to the right = a tight body with a
-heavy tail.
-
-**What it tells you:**
-- Body is tight: **p50 ≈ 1.3 µs, p90 ≈ 2.5 µs**.
-- Then a **long tail** out to milliseconds (p99 ≈ 15 µs, max ~4 ms). That tail is
-  the signature of OS scheduler preemption on unpinned threads — not the code.
+* **What this shows**: The cumulative probability distribution of end-to-end latency (from market-data message arrival in the feed handler to order wire-readiness in the gateway).
+* **How to read it**: Find a percentile (e.g. p50 or p99) on the vertical Y-axis, move horizontally to the curve, and read the latency on the horizontal X-axis (log-scale).
+* **Summary**: The core logic is fast with a tight body (p50 ≈ 1.3 µs, p90 ≈ 2.4 µs). The flat tail to the right (p99 ≈ 15 µs) is caused by OS scheduler preemption on unpinned macOS threads, not the codebase itself.
 
 ## Figure 2 — Per-stage latency percentiles
 ![stage percentiles](figures/fig_stage_percentiles.png)
 
-**What it is:** p50/p90/p99 for each pipeline stage and for end-to-end, log-y so
-nanoseconds and microseconds fit together. Each stage measures only its own work
-(feed: recv→enqueue; strategy: dequeue→decision; gateway: dequeue→wire-ready).
-
-**How to read it:** compare bar heights *across* stages, and compare the three
-stages' sum against the END-TO-END bar.
-
-**What it tells you:**
-- **feed** and **gateway** show the true compute cost: p99 of **42–83 ns**.
-- **strategy**'s p50 (~400 ns) looks high — that is *measurement* noise, not
-  compute: it is the busiest (middle) thread, so its tsc-bracketed region most
-  often straddles a context switch. The *true* strategy compute is ~5 ns (see
-  Figure 3, isolated single-thread).
-- **END-TO-END > sum of stages.** The gap is queue-wait + scheduling: a message
-  sits in an SPSC queue until the next thread is scheduled to drain it. On a
-  pinned Linux box those waits collapse to the ~15–20 ns hop latency.
+* **What this shows**: Comparison of the latency percentiles (p50, p90, p99) for the individual stages (feed handler, strategy, gateway) and the entire end-to-end flow.
+* **How to read it**: Compare bar heights across stages (lower is faster), and compare the sum of stages to the end-to-end bar.
+* **Summary**: Processing inside each stage is extremely fast (p99 is 42–83 ns), but queue waits and scheduling overhead occupy the bulk of the end-to-end latency on unpinned platforms.
 
 ## Figure 3 — Hot-path component cost (isolated microbenchmarks)
 ![components](figures/fig_components.png)
 
-**What it is:** each hot-path primitive measured *alone*, single-threaded, no
-queue or scheduler involved — the pure algorithmic cost.
+* **What this shows**: Latency of core components measured in isolation, single-threaded (no scheduling or queue hops).
+* **How to read it**: Shorter bars indicate faster operations.
+* **Summary**: All hot-path operations (TSC reading, parsing, order book updates, strategy decisions, and risk-gate checks) run in under 6 nanoseconds. The code logic is never the bottleneck.
 
-**How to read it:** shorter bar = cheaper. These are the numbers the design was
-built to hit.
-
-**What it tells you:** every hot-path operation is **sub-6 ns** —
-`tsc_now` 0.28 ns, risk gate 1.17 ns (all four checks incl. token bucket),
-parse 0.48 ns, book update 4.96 ns, full strategy decision 5.48 ns. **The logic
-is never the bottleneck.** Contrast with Figures 1–2: the µs-scale end-to-end
-latency is entirely cross-core transfer + scheduling, which this figure isolates
-out.
-
-## Figure 4 — The false-sharing surprise
+## Figure 4 — SPSC Queue False-Sharing Performance A/B
 ![false sharing](figures/fig_false_sharing.png)
 
-**What it is:** the SPSC queue's cross-thread throughput with the
-producer/consumer positions on **separate** cache lines (our padded design,
-red) vs. **sharing** a line (unpadded, green) — the classic false-sharing A/B.
-
-**How to read it:** taller = faster. The *textbook* expectation is that the
-padded (red) bar should be taller.
-
-**What it tells you (the surprise):** on Apple M4, **padding is ~3.8× SLOWER**
-— the opposite of the x86 textbook result. On Apple Silicon the P-cores are in
-separate clusters and the dominant cost is *inter-cluster* cache-line transfer;
-putting both positions on one line means a single transfer carries both, so
-fewer distinct lines cross the interconnect. On x86 with a shared L3 (the
-deployment target) false sharing is genuinely harmful and padding is correct —
-so the code **keeps the padding** and treats this as a "validate on your target,
-don't cargo-cult" lesson rather than a change.
+* **What this shows**: Cross-thread queue throughput (operations per second) comparing the padded queue design (red) against the unpadded queue design (green).
+* **How to read it**: Taller bars show higher throughput (more queue operations completed per second).
+* **Summary**: On Apple Silicon (M4), the unpadded design is ~3.8× faster because the producer and consumer cores reside in separate clusters; keeping both positions on one cache line minimizes inter-cluster transfer latency. For x86 target architectures with a shared L3 cache, false sharing is indeed harmful, so the padding is kept. This highlights the importance of validating optimizations on the target hardware.
 
 ---
 
