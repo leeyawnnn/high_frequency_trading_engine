@@ -1,9 +1,9 @@
 // Phase 8: pre-trade risk gate.
-#include "test_harness.hpp"
 #include "hft/itch_message.hpp"
 #include "hft/order_msg.hpp"
 #include "hft/risk_gate.hpp"
 #include "hft/tsc.hpp"
+#include "test_harness.hpp"
 
 #include <atomic>
 #include <chrono>
@@ -50,7 +50,7 @@ HFT_TEST(position_limit_both_directions) {
   // Drive position to +900 via fills.
   g.on_fill(fill(hft::Side::kBuy, 900));
   CHECK_EQ(g.position(), 900);
-  CHECK(g.allow(order(hft::Side::kBuy, 100)));                                  // ->1000 ok
+  CHECK(g.allow(order(hft::Side::kBuy, 100)));                                     // ->1000 ok
   CHECK(g.check(order(hft::Side::kBuy, 200)) == hft::RiskResult::kPositionLimit);  // ->1100 no
   // Selling is fine (reduces exposure).
   CHECK(g.allow(order(hft::Side::kSell, 500)));
@@ -81,12 +81,14 @@ HFT_TEST(rate_limit_token_bucket) {
   int accepted = 0, rate_rejected = 0;
   for (int i = 0; i < 50; ++i) {
     const hft::RiskResult r = g.check(order(hft::Side::kBuy, 1));
-    if (r == hft::RiskResult::kAccept) ++accepted;
-    else if (r == hft::RiskResult::kRateLimit) ++rate_rejected;
+    if (r == hft::RiskResult::kAccept)
+      ++accepted;
+    else if (r == hft::RiskResult::kRateLimit)
+      ++rate_rejected;
   }
   CHECK(accepted >= 1);
-  CHECK(accepted <= 6);          // burst-bounded, not all 50
-  CHECK(rate_rejected > 0);      // limiter actually fired
+  CHECK(accepted <= 6);      // burst-bounded, not all 50
+  CHECK(rate_rejected > 0);  // limiter actually fired
 
   // After ~30ms (3 tokens at 100/s) at least one more should be allowed.
   std::this_thread::sleep_for(std::chrono::milliseconds(40));

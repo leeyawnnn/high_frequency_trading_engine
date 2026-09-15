@@ -27,8 +27,8 @@ namespace hft {
 
 // A UDP destination/bind address (IPv4).
 struct Endpoint {
-  ::in_addr_t addr;     // network byte order
-  std::uint16_t port;   // host byte order
+  ::in_addr_t addr;    // network byte order
+  std::uint16_t port;  // host byte order
 
   static Endpoint v4(const char* ip, std::uint16_t port) {
     Endpoint e{};
@@ -79,8 +79,7 @@ class UdpSocket {
     sa.sin_port = htons(port);
     if (::inet_pton(AF_INET, bind_addr, &sa.sin_addr) != 1)
       throw std::runtime_error(std::string("bad bind address: ") + bind_addr);
-    if (::bind(s.fd_, reinterpret_cast<::sockaddr*>(&sa), sizeof(sa)) < 0)
-      s.throw_errno("bind");
+    if (::bind(s.fd_, reinterpret_cast<::sockaddr*>(&sa), sizeof(sa)) < 0) s.throw_errno("bind");
     return s;
   }
 
@@ -101,15 +100,12 @@ class UdpSocket {
   // Hot-path send. Returns bytes sent, or -1 on error (errno set).
   long send_to(const Endpoint& dst, const void* data, std::size_t len) noexcept {
     ::sockaddr_in sa = dst.sockaddr();
-    return ::sendto(fd_, data, len, 0, reinterpret_cast<::sockaddr*>(&sa),
-                    sizeof(sa));
+    return ::sendto(fd_, data, len, 0, reinterpret_cast<::sockaddr*>(&sa), sizeof(sa));
   }
 
   // Hot-path receive. Returns bytes received, 0 for an empty datagram, or
   // -1 when there is nothing to read (EWOULDBLOCK) or on error.
-  long try_recv(void* buf, std::size_t len) noexcept {
-    return ::recv(fd_, buf, len, 0);
-  }
+  long try_recv(void* buf, std::size_t len) noexcept { return ::recv(fd_, buf, len, 0); }
 
   int fd() const noexcept { return fd_; }
 

@@ -19,7 +19,12 @@ int main(int argc, char** argv) {
   // of ~64 ticks around mid models a realistic active top-of-book.
   std::vector<hft::ItchMessage> stream(static_cast<std::size_t>(n));
   std::uint64_t s = 0x1234;
-  auto xs = [&] { s ^= s << 13; s ^= s >> 7; s ^= s << 17; return s; };
+  auto xs = [&] {
+    s ^= s << 13;
+    s ^= s >> 7;
+    s ^= s << 17;
+    return s;
+  };
   for (auto& m : stream) {
     const int off = 2000 + static_cast<int>(xs() % 64);
     m.price = base + static_cast<std::int64_t>(off) * tick;
@@ -43,8 +48,8 @@ int main(int argc, char** argv) {
   (void)sink;
 
   const double ns = hft::tsc_to_ns(t1 - t0);
-  std::printf("book apply(): %.2f ns/update  %.0f M updates/s  (out_of_range=%llu)\n",
-              ns / n, static_cast<double>(n) / (ns / 1e9) / 1e6,
+  std::printf("book apply(): %.2f ns/update  %.0f M updates/s  (out_of_range=%llu)\n", ns / n,
+              static_cast<double>(n) / (ns / 1e9) / 1e6,
               static_cast<unsigned long long>(book.out_of_range()));
   return 0;
 }

@@ -37,23 +37,20 @@ enum class RiskResult : std::uint8_t {
 };
 
 struct RiskLimits {
-  std::int64_t max_position;       // absolute net-position bound (shares)
-  std::uint32_t max_order_size;    // per-order cap (shares)
-  double max_orders_per_sec;       // token-bucket refill rate (0 = unlimited)
-  std::uint32_t burst;             // token-bucket depth (orders allowed back-to-back)
+  std::int64_t max_position;     // absolute net-position bound (shares)
+  std::uint32_t max_order_size;  // per-order cap (shares)
+  double max_orders_per_sec;     // token-bucket refill rate (0 = unlimited)
+  std::uint32_t burst;           // token-bucket depth (orders allowed back-to-back)
 };
 
 class RiskGate {
  public:
   RiskGate(const RiskLimits& lim, const std::atomic<bool>& kill) noexcept
-      : kill_(&kill),
-        max_position_(lim.max_position),
-        max_order_size_(lim.max_order_size) {
+      : kill_(&kill), max_position_(lim.max_position), max_order_size_(lim.max_order_size) {
     const double hz = tsc_calibration().cycles_per_ns * 1e9;
-    cycles_per_token_ =
-        (lim.max_orders_per_sec > 0.0)
-            ? static_cast<std::uint64_t>(hz / lim.max_orders_per_sec)
-            : 0;
+    cycles_per_token_ = (lim.max_orders_per_sec > 0.0)
+                            ? static_cast<std::uint64_t>(hz / lim.max_orders_per_sec)
+                            : 0;
     tau_ = cycles_per_token_ * (lim.burst ? lim.burst : 1);
   }
 
@@ -70,10 +67,9 @@ class RiskGate {
       return RiskResult::kOrderSize;
     }
     // 3. Position limit (projected net position stays within [-max, +max]).
-    const std::int64_t signed_sz =
-        (o.side == static_cast<std::uint8_t>(Side::kBuy))
-            ? static_cast<std::int64_t>(o.size)
-            : -static_cast<std::int64_t>(o.size);
+    const std::int64_t signed_sz = (o.side == static_cast<std::uint8_t>(Side::kBuy))
+                                       ? static_cast<std::int64_t>(o.size)
+                                       : -static_cast<std::int64_t>(o.size);
     const std::int64_t projected = position_ + signed_sz;
     if (HFT_UNLIKELY(projected > max_position_ || projected < -max_position_)) {
       ++rej_pos_;

@@ -1,6 +1,6 @@
 // Phase 1: TSC timestamping + calibration.
-#include "test_harness.hpp"
 #include "hft/tsc.hpp"
+#include "test_harness.hpp"
 
 #include <chrono>
 #include <cstdint>
@@ -47,8 +47,7 @@ HFT_TEST(delta_matches_wall_clock) {
   const std::uint64_t c1 = hft::tsc_now_serialized();
   const auto w1 = clock::now();
 
-  const double wall_ns =
-      std::chrono::duration<double, std::nano>(w1 - w0).count();
+  const double wall_ns = std::chrono::duration<double, std::nano>(w1 - w0).count();
   const double tsc_ns = hft::tsc_to_ns(c1 - c0);
 
   // 5% tolerance: scheduler jitter on the sleep dominates the error budget.

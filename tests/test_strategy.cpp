@@ -1,10 +1,10 @@
 // Phase 7: book-imbalance strategy.
-#include "test_harness.hpp"
 #include "hft/feed_handler.hpp"
 #include "hft/itch_message.hpp"
 #include "hft/order_msg.hpp"
 #include "hft/spsc_queue.hpp"
 #include "hft/strategy.hpp"
+#include "test_harness.hpp"
 
 #include <cstdint>
 #include <memory>
@@ -23,8 +23,7 @@ hft::StrategyParams params() {
   };
 }
 
-hft::MdEvent ev(hft::MsgType t, hft::Side s, double px, std::uint32_t size,
-                std::uint64_t arrival) {
+hft::MdEvent ev(hft::MsgType t, hft::Side s, double px, std::uint32_t size, std::uint64_t arrival) {
   hft::MdEvent e{};
   e.msg.type = static_cast<std::uint8_t>(t);
   e.msg.side = static_cast<std::uint8_t>(s);
@@ -59,9 +58,9 @@ HFT_TEST(bid_heavy_triggers_buy_at_bid) {
   auto o = feed(s, ev(hft::MsgType::kAdd, hft::Side::kSell, 100.01, 100, 22));
   CHECK(o.has_value());
   CHECK_EQ(o->side, static_cast<std::uint8_t>(hft::Side::kBuy));
-  CHECK_EQ(o->price, hft::price_from_double(100.00));   // buy AT THE BID
+  CHECK_EQ(o->price, hft::price_from_double(100.00));  // buy AT THE BID
   CHECK_EQ(o->size, 100u);
-  CHECK_EQ(o->md_timestamp, 22u);                       // carried e2e tag
+  CHECK_EQ(o->md_timestamp, 22u);  // carried e2e tag
   CHECK_EQ(o->action, static_cast<std::uint8_t>(hft::OrderAction::kNew));
   CHECK(s.in_flight());
 }
@@ -126,13 +125,14 @@ HFT_TEST(runner_through_real_queues) {
   CHECK(feedq->push(ev(hft::MsgType::kAdd, hft::Side::kBuy, 100.00, 900, 100)));
   CHECK(feedq->push(ev(hft::MsgType::kAdd, hft::Side::kSell, 100.01, 100, 200)));
 
-  while (runner.poll_once()) { /* drain */ }
+  while (runner.poll_once()) { /* drain */
+  }
 
   hft::OrderRequest o{};
-  CHECK(orderq->pop(o));                                  // an order was produced
+  CHECK(orderq->pop(o));  // an order was produced
   CHECK_EQ(o.side, static_cast<std::uint8_t>(hft::Side::kBuy));
   CHECK_EQ(o.md_timestamp, 200u);
-  CHECK_EQ(runner.latency().count(), 2u);                // both MD events timed
+  CHECK_EQ(runner.latency().count(), 2u);  // both MD events timed
   CHECK_EQ(runner.orders_pushed(), 1u);
 
   // Feed a fill back; runner applies it on the next poll.
@@ -140,7 +140,7 @@ HFT_TEST(runner_through_real_queues) {
   f.side = o.side;
   f.fill_size = o.size;
   CHECK(fillq->push(f));
-  runner.poll_once();                                    // no MD, but drains fill
+  runner.poll_once();  // no MD, but drains fill
   CHECK_EQ(runner.strategy().position(), 100);
 }
 

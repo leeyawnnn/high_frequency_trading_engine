@@ -11,8 +11,8 @@
 #include <thread>
 
 #if defined(__linux__)
-#  include <pthread.h>
-#  include <sched.h>
+#include <pthread.h>
+#include <sched.h>
 #endif
 
 namespace {
@@ -37,8 +37,7 @@ struct Item {
 int main(int argc, char** argv) {
   hft::tsc_calibrate();
 
-  const std::uint64_t kItems =
-      (argc > 1) ? std::strtoull(argv[1], nullptr, 10) : 500'000'000ULL;
+  const std::uint64_t kItems = (argc > 1) ? std::strtoull(argv[1], nullptr, 10) : 500'000'000ULL;
 
   using Queue = hft::SpscQueue<Item, 4096>;
   auto q = std::make_unique<Queue>();

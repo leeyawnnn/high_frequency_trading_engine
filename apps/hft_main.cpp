@@ -26,7 +26,9 @@
 
 namespace {
 std::atomic<bool> g_stop{false};
-void on_signal(int) { g_stop.store(true); }
+void on_signal(int) {
+  g_stop.store(true);
+}
 
 const char* arg_str(int argc, char** argv, const char* key, const char* def) {
   for (int i = 1; i + 1 < argc; ++i)
@@ -71,18 +73,18 @@ int main(int argc, char** argv) {
     }
   }
 
-  std::printf("hft_main: feed_port=%u order_dst_port=%u fill_port=%u "
-              "cores(feed=%d strat=%d gw=%d) threshold=%.2f\n",
-              cfg.feed_port, 0u /*shown via config*/, cfg.fill_port,
-              cfg.feed_core, cfg.strategy_core, cfg.gateway_core, cfg.threshold);
+  std::printf(
+      "hft_main: feed_port=%u order_dst_port=%u fill_port=%u "
+      "cores(feed=%d strat=%d gw=%d) threshold=%.2f\n",
+      cfg.feed_port, 0u /*shown via config*/, cfg.fill_port, cfg.feed_core, cfg.strategy_core,
+      cfg.gateway_core, cfg.threshold);
   std::printf("hft_main: ensure exchange_sim is running on matching ports.\n");
 
   auto engine = std::make_unique<hft::Engine<>>(cfg);
   engine->start();
 
   if (duration_ms > 0) {
-    const auto deadline =
-        std::chrono::steady_clock::now() + std::chrono::milliseconds(duration_ms);
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(duration_ms);
     while (!g_stop.load() && std::chrono::steady_clock::now() < deadline)
       std::this_thread::sleep_for(std::chrono::milliseconds(20));
   } else {

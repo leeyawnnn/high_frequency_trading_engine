@@ -1,5 +1,4 @@
 // Phase 9: order gateway (order queue -> risk -> wire, + fill intake).
-#include "test_harness.hpp"
 #include "hft/itch_message.hpp"
 #include "hft/net.hpp"
 #include "hft/order_gateway.hpp"
@@ -7,6 +6,7 @@
 #include "hft/risk_gate.hpp"
 #include "hft/spsc_queue.hpp"
 #include "hft/tsc.hpp"
+#include "test_harness.hpp"
 
 #include <atomic>
 #include <cstdint>
@@ -16,8 +16,8 @@ namespace {
 using OrderQ = hft::SpscQueue<hft::OrderRequest, 1024>;
 using FillQ = hft::SpscQueue<hft::ExecReport, 1024>;
 
-hft::OrderRequest order(std::uint64_t id, hft::Side side, std::uint32_t size,
-                        double px, std::uint64_t md_ts) {
+hft::OrderRequest order(std::uint64_t id, hft::Side side, std::uint32_t size, double px,
+                        std::uint64_t md_ts) {
   hft::OrderRequest o{};
   o.order_id = id;
   o.md_timestamp = md_ts;
@@ -45,14 +45,15 @@ HFT_TEST(sends_orders_and_tracks_inflight) {
   hft::UdpSocket exch = hft::UdpSocket::bound(0, "127.0.0.1");
   const hft::Endpoint exch_ep = hft::Endpoint::v4("127.0.0.1", exch.local_port());
 
-  hft::OrderGateway<OrderQ, FillQ> gw(*orderq, *fillq, exch_ep, /*fill_port*/ 0,
-                                      limits(), kill, "127.0.0.1");
+  hft::OrderGateway<OrderQ, FillQ> gw(*orderq, *fillq, exch_ep, /*fill_port*/ 0, limits(), kill,
+                                      "127.0.0.1");
 
   // Push three orders; drive the gateway.
   orderq->push(order(1, hft::Side::kBuy, 100, 100.00, hft::tsc_now()));
   orderq->push(order(2, hft::Side::kSell, 200, 100.01, hft::tsc_now()));
   orderq->push(order(3, hft::Side::kBuy, 50, 99.99, hft::tsc_now()));
-  while (gw.poll_once()) { /* drain */ }
+  while (gw.poll_once()) { /* drain */
+  }
 
   CHECK_EQ(gw.sent(), 3u);
   CHECK_EQ(gw.risk_rejected(), 0u);
@@ -76,8 +77,7 @@ HFT_TEST(fill_matches_inflight_updates_risk_and_forwards) {
   hft::UdpSocket exch = hft::UdpSocket::bound(0, "127.0.0.1");
   const hft::Endpoint exch_ep = hft::Endpoint::v4("127.0.0.1", exch.local_port());
 
-  hft::OrderGateway<OrderQ, FillQ> gw(*orderq, *fillq, exch_ep, 0, limits(), kill,
-                                      "127.0.0.1");
+  hft::OrderGateway<OrderQ, FillQ> gw(*orderq, *fillq, exch_ep, 0, limits(), kill, "127.0.0.1");
   const std::uint16_t gw_fill_port = gw.fill_local_port();
   CHECK(gw_fill_port != 0);
 
@@ -103,7 +103,7 @@ HFT_TEST(fill_matches_inflight_updates_risk_and_forwards) {
 
   CHECK_EQ(gw.fills_matched(), 1u);
   CHECK_EQ(gw.fills_unmatched(), 0u);
-  CHECK_EQ(gw.risk().position(), 300);          // gate position updated by fill
+  CHECK_EQ(gw.risk().position(), 300);  // gate position updated by fill
   CHECK_EQ(gw.round_trip_latency().count(), 1u);
 
   // Fill forwarded to the strategy.
@@ -122,8 +122,7 @@ HFT_TEST(risk_rejected_order_never_hits_wire) {
   exch.set_nonblocking(true);
   const hft::Endpoint exch_ep = hft::Endpoint::v4("127.0.0.1", exch.local_port());
 
-  hft::OrderGateway<OrderQ, FillQ> gw(*orderq, *fillq, exch_ep, 0, limits(), kill,
-                                      "127.0.0.1");
+  hft::OrderGateway<OrderQ, FillQ> gw(*orderq, *fillq, exch_ep, 0, limits(), kill, "127.0.0.1");
 
   orderq->push(order(1, hft::Side::kBuy, 9999, 100.00, hft::tsc_now()));  // over size cap
   gw.poll_once();

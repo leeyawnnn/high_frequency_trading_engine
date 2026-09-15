@@ -24,8 +24,7 @@ class JsonValue {
  public:
   using Object = std::map<std::string, JsonValue>;
   using Array = std::vector<JsonValue>;
-  using Storage =
-      std::variant<std::nullptr_t, bool, double, std::string, Array, Object>;
+  using Storage = std::variant<std::nullptr_t, bool, double, std::string, Array, Object>;
 
   JsonValue() : v_(nullptr) {}
   explicit JsonValue(Storage v) : v_(std::move(v)) {}
@@ -48,8 +47,8 @@ class JsonValue {
     std::size_t start = 0;
     while (start <= dotted.size()) {
       const std::size_t dot = dotted.find('.', start);
-      const std::string key = dotted.substr(
-          start, dot == std::string::npos ? std::string::npos : dot - start);
+      const std::string key =
+          dotted.substr(start, dot == std::string::npos ? std::string::npos : dot - start);
       if (!cur->is_object()) return nullptr;
       const Object& o = cur->as_object();
       auto it = o.find(key);
@@ -122,8 +121,8 @@ class Config {
     std::size_t i_ = 0;
 
     [[noreturn]] void fail(const std::string& msg) const {
-      throw std::runtime_error("config JSON parse error at offset " +
-                               std::to_string(i_) + ": " + msg);
+      throw std::runtime_error("config JSON parse error at offset " + std::to_string(i_) + ": " +
+                               msg);
     }
 
     char peek() const { return i_ < s_.size() ? s_[i_] : '\0'; }
@@ -142,12 +141,19 @@ class Config {
     JsonValue parse_value() {
       skip_ws();
       switch (peek()) {
-        case '{': return parse_object();
-        case '[': return parse_array();
-        case '"': return JsonValue(JsonValue::Storage(parse_string()));
-        case 't': case 'f': return parse_bool();
-        case 'n': return parse_null();
-        default: return parse_number();
+        case '{':
+          return parse_object();
+        case '[':
+          return parse_array();
+        case '"':
+          return JsonValue(JsonValue::Storage(parse_string()));
+        case 't':
+        case 'f':
+          return parse_bool();
+        case 'n':
+          return parse_null();
+        default:
+          return parse_number();
       }
     }
 
@@ -155,7 +161,10 @@ class Config {
       JsonValue::Object obj;
       get();  // consume '{'
       skip_ws();
-      if (peek() == '}') { get(); return JsonValue(JsonValue::Storage(std::move(obj))); }
+      if (peek() == '}') {
+        get();
+        return JsonValue(JsonValue::Storage(std::move(obj)));
+      }
       for (;;) {
         skip_ws();
         if (peek() != '"') fail("expected string key in object");
@@ -176,7 +185,10 @@ class Config {
       JsonValue::Array arr;
       get();  // consume '['
       skip_ws();
-      if (peek() == ']') { get(); return JsonValue(JsonValue::Storage(std::move(arr))); }
+      if (peek() == ']') {
+        get();
+        return JsonValue(JsonValue::Storage(std::move(arr)));
+      }
       for (;;) {
         arr.push_back(parse_value());
         skip_ws();
@@ -198,15 +210,33 @@ class Config {
         if (c == '\\') {
           const char e = get();
           switch (e) {
-            case '"': out.push_back('"'); break;
-            case '\\': out.push_back('\\'); break;
-            case '/': out.push_back('/'); break;
-            case 'n': out.push_back('\n'); break;
-            case 't': out.push_back('\t'); break;
-            case 'r': out.push_back('\r'); break;
-            case 'b': out.push_back('\b'); break;
-            case 'f': out.push_back('\f'); break;
-            default: out.push_back(e); break;  // includes \uXXXX passthrough-ish
+            case '"':
+              out.push_back('"');
+              break;
+            case '\\':
+              out.push_back('\\');
+              break;
+            case '/':
+              out.push_back('/');
+              break;
+            case 'n':
+              out.push_back('\n');
+              break;
+            case 't':
+              out.push_back('\t');
+              break;
+            case 'r':
+              out.push_back('\r');
+              break;
+            case 'b':
+              out.push_back('\b');
+              break;
+            case 'f':
+              out.push_back('\f');
+              break;
+            default:
+              out.push_back(e);
+              break;  // includes \uXXXX passthrough-ish
           }
         } else {
           out.push_back(c);
@@ -216,13 +246,22 @@ class Config {
     }
 
     JsonValue parse_bool() {
-      if (s_.compare(i_, 4, "true") == 0) { i_ += 4; return JsonValue(JsonValue::Storage(true)); }
-      if (s_.compare(i_, 5, "false") == 0) { i_ += 5; return JsonValue(JsonValue::Storage(false)); }
+      if (s_.compare(i_, 4, "true") == 0) {
+        i_ += 4;
+        return JsonValue(JsonValue::Storage(true));
+      }
+      if (s_.compare(i_, 5, "false") == 0) {
+        i_ += 5;
+        return JsonValue(JsonValue::Storage(false));
+      }
       fail("invalid literal");
     }
 
     JsonValue parse_null() {
-      if (s_.compare(i_, 4, "null") == 0) { i_ += 4; return JsonValue(); }
+      if (s_.compare(i_, 4, "null") == 0) {
+        i_ += 4;
+        return JsonValue();
+      }
       fail("invalid literal");
     }
 
@@ -232,8 +271,7 @@ class Config {
       bool any = false;
       while (i_ < s_.size()) {
         const char c = s_[i_];
-        if ((c >= '0' && c <= '9') || c == '.' || c == 'e' || c == 'E' ||
-            c == '+' || c == '-') {
+        if ((c >= '0' && c <= '9') || c == '.' || c == 'e' || c == 'E' || c == '+' || c == '-') {
           ++i_;
           any = true;
         } else {

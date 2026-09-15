@@ -1,6 +1,6 @@
 // Phase 5: JSON config loader.
-#include "test_harness.hpp"
 #include "hft/config.hpp"
+#include "test_harness.hpp"
 
 #include <string>
 
@@ -26,9 +26,9 @@ HFT_TEST(parse_nested_and_typed_access) {
 HFT_TEST(missing_keys_return_defaults) {
   hft::Config c = hft::Config::parse(R"({ "a": { "b": 1 } })");
   CHECK_EQ(c.get_int("a.b", -1), 1);
-  CHECK_EQ(c.get_int("a.missing", -7), -7);       // missing leaf
-  CHECK_EQ(c.get_int("x.y.z", 99), 99);           // missing branch
-  CHECK_EQ(c.get_int("a", 42), 42);               // object isn't an int
+  CHECK_EQ(c.get_int("a.missing", -7), -7);              // missing leaf
+  CHECK_EQ(c.get_int("x.y.z", 99), 99);                  // missing branch
+  CHECK_EQ(c.get_int("a", 42), 42);                      // object isn't an int
   CHECK(c.get_string("a.b", "fallback") == "fallback");  // wrong type -> default
 }
 

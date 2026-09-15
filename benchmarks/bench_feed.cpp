@@ -10,12 +10,12 @@
 //
 // Usage: bench_feed [total_msgs] [batch] [rate_msgs_per_sec(0=max)]
 //                   [feed_core] [drain_core]
+#include "hft/affinity.hpp"
 #include "hft/feed_handler.hpp"
 #include "hft/itch_message.hpp"
 #include "hft/itch_parser.hpp"
 #include "hft/net.hpp"
 #include "hft/spsc_queue.hpp"
-#include "hft/affinity.hpp"
 #include "hft/tsc.hpp"
 
 #include <algorithm>
@@ -79,10 +79,9 @@ int main(int argc, char** argv) {
 
   const double cyc_per_ns = hft::tsc_calibration().cycles_per_ns;
   const std::uint64_t cycles_per_batch =
-      (rate > 0)
-          ? static_cast<std::uint64_t>(static_cast<double>(batch) * 1e9 /
-                                       static_cast<double>(rate) * cyc_per_ns)
-          : 0;
+      (rate > 0) ? static_cast<std::uint64_t>(static_cast<double>(batch) * 1e9 /
+                                              static_cast<double>(rate) * cyc_per_ns)
+                 : 0;
 
   std::array<std::byte, 40 * hft::kMsgSize> dgram{};
   std::uint64_t next_send = hft::tsc_now();
@@ -100,7 +99,8 @@ int main(int argc, char** argv) {
       hft::encode_message(m, dgram.data() + k * hft::kMsgSize);
     }
     if (cycles_per_batch) {
-      while (hft::tsc_now() < next_send) { /* pace */ }
+      while (hft::tsc_now() < next_send) { /* pace */
+      }
       next_send += cycles_per_batch;
     }
     tx.send_to(dst, dgram.data(), n * hft::kMsgSize);
@@ -120,22 +120,18 @@ int main(int argc, char** argv) {
 
   std::printf("feed-handler benchmark\n");
   std::printf("  sent        : %llu msgs (batch=%ld, rate=%s)\n",
-              static_cast<unsigned long long>(total), batch,
-              rate > 0 ? "limited" : "max");
-  std::printf("  received    : %llu  (drops: %llu, %.4f%%)\n",
-              static_cast<unsigned long long>(got),
+              static_cast<unsigned long long>(total), batch, rate > 0 ? "limited" : "max");
+  std::printf("  received    : %llu  (drops: %llu, %.4f%%)\n", static_cast<unsigned long long>(got),
               static_cast<unsigned long long>(drops),
               100.0 * static_cast<double>(drops) / static_cast<double>(total));
   std::printf("  elapsed     : %.1f ms\n", ns / 1e6);
-  std::printf("  throughput  : %.2f M msg/sec\n",
-              static_cast<double>(total) / (ns / 1e9) / 1e6);
+  std::printf("  throughput  : %.2f M msg/sec\n", static_cast<double>(total) / (ns / 1e9) / 1e6);
   std::printf("  feed recv->enqueue latency (ns):\n");
   std::printf("    p50=%llu  p99=%llu  p999=%llu  max=%llu  (n=%llu)\n",
               static_cast<unsigned long long>(h.percentile(50.0)),
               static_cast<unsigned long long>(h.percentile(99.0)),
               static_cast<unsigned long long>(h.percentile(99.9)),
-              static_cast<unsigned long long>(h.max()),
-              static_cast<unsigned long long>(h.count()));
+              static_cast<unsigned long long>(h.max()), static_cast<unsigned long long>(h.count()));
   std::printf("  queue-full drops in handler: %llu\n",
               static_cast<unsigned long long>(fh.dropped()));
   return 0;

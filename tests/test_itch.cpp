@@ -1,7 +1,7 @@
 // Phase 3: ITCH-style binary feed + zero-copy parser.
-#include "test_harness.hpp"
 #include "hft/itch_message.hpp"
 #include "hft/itch_parser.hpp"
+#include "test_harness.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -25,8 +25,7 @@ hft::ItchMessage make_message(std::mt19937_64& rng, std::uint32_t seq) {
   m.size = static_cast<std::uint32_t>(rng() % 100'000ULL);
   m.seq = seq;
   m.type = types[rng() % 5];
-  m.side = (rng() & 1) ? static_cast<std::uint8_t>('B')
-                       : static_cast<std::uint8_t>('S');
+  m.side = (rng() & 1) ? static_cast<std::uint8_t>('B') : static_cast<std::uint8_t>('S');
   m.flags = static_cast<std::uint16_t>(rng() & 0xFFFF);
   return m;
 }

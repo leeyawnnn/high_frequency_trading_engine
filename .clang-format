@@ -1,0 +1,24 @@
+# Style for hft_engine.
+#
+# Google base with a 100-column limit: the existing tree is overwhelmingly
+# within 80 columns, but a handful of template signatures and static_asserts
+# read better unwrapped. Pointer/reference binds left (`const char* p`), which
+# is what the tree already does.
+#
+# CI pins the exact clang-format version (see .github/workflows/ci.yml); minor
+# releases change wrapping behaviour, so an unpinned formatter would produce
+# spurious diffs.
+---
+Language: Cpp
+BasedOnStyle: Google
+ColumnLimit: 100
+IndentWidth: 2
+PointerAlignment: Left
+DerivePointerAlignment: false
+AllowShortFunctionsOnASingleLine: Inline
+AlwaysBreakTemplateDeclarations: Yes
+# The architecture diagram in engine.hpp and the measurement notes in tsc.hpp
+# are hand-laid-out ASCII. Reflowing would destroy them.
+ReflowComments: false
+IncludeBlocks: Preserve
+SortIncludes: CaseSensitive

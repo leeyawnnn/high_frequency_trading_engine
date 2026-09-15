@@ -16,14 +16,14 @@
 namespace hft {
 
 enum class OrderAction : std::uint8_t {
-  kNew    = 'N',
+  kNew = 'N',
   kCancel = 'C',
 };
 
 enum class ExecStatus : std::uint8_t {
-  kAck      = 'A',
-  kFilled   = 'F',
-  kPartial  = 'P',
+  kAck = 'A',
+  kFilled = 'F',
+  kPartial = 'P',
   kRejected = 'R',
   kCanceled = 'X',
 };
@@ -32,11 +32,11 @@ enum class ExecStatus : std::uint8_t {
 struct OrderRequest {
   std::uint64_t order_id;      // @0  engine-assigned, monotonic
   std::uint64_t md_timestamp;  // @8  carried market-data arrival TSC (e2e tag)
-  std::int64_t  price;         // @16 fixed-point limit price
+  std::int64_t price;          // @16 fixed-point limit price
   std::uint32_t symbol;        // @24 packed ticker
   std::uint32_t size;          // @28 shares
-  std::uint8_t  side;          // @32 Side
-  std::uint8_t  action;        // @33 OrderAction
+  std::uint8_t side;           // @32 Side
+  std::uint8_t action;         // @33 OrderAction
   std::uint16_t flags;         // @34
   std::uint32_t pad;           // @36 -> 40 bytes
 };
@@ -44,11 +44,11 @@ struct OrderRequest {
 struct ExecReport {
   std::uint64_t order_id;      // @0  matches the OrderRequest
   std::uint64_t md_timestamp;  // @8  echoed back for e2e latency
-  std::int64_t  fill_price;    // @16
+  std::int64_t fill_price;     // @16
   std::uint32_t symbol;        // @24
   std::uint32_t fill_size;     // @28
-  std::uint8_t  side;          // @32 Side
-  std::uint8_t  status;        // @33 ExecStatus
+  std::uint8_t side;           // @32 Side
+  std::uint8_t status;         // @33 ExecStatus
   std::uint16_t flags;         // @34
   std::uint32_t pad;           // @36 -> 40 bytes
 };

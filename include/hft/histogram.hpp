@@ -49,8 +49,7 @@ class Histogram {
   }
 
   static constexpr std::size_t kBucketCount = buckets_needed(HighestTrackableNs);
-  static constexpr std::size_t kCountsLen =
-      (kBucketCount + 1) * kSubBucketHalfCount;
+  static constexpr std::size_t kCountsLen = (kBucketCount + 1) * kSubBucketHalfCount;
 
  public:
   Histogram() = default;
@@ -80,9 +79,7 @@ class Histogram {
   std::uint64_t min() const noexcept { return total_count_ ? min_ : 0; }
   std::uint64_t max() const noexcept { return max_; }
   double mean() const noexcept {
-    return total_count_ ? static_cast<double>(sum_ns_) /
-                              static_cast<double>(total_count_)
-                        : 0.0;
+    return total_count_ ? static_cast<double>(sum_ns_) / static_cast<double>(total_count_) : 0.0;
   }
 
   // Value at the given percentile in [0,100]. Returns the highest-equivalent
@@ -138,11 +135,9 @@ class Histogram {
   // ---- HdrHistogram index math -------------------------------------------
   static HFT_ALWAYS_INLINE int bucket_index(std::uint64_t value) noexcept {
     // __builtin_clzll is UB for 0, but (value | mask) is always >= mask >= 1.
-    return kLeadingZeroCountBase -
-           __builtin_clzll(value | kSubBucketMask);
+    return kLeadingZeroCountBase - __builtin_clzll(value | kSubBucketMask);
   }
-  static HFT_ALWAYS_INLINE std::uint32_t sub_bucket_index(std::uint64_t value,
-                                                          int bidx) noexcept {
+  static HFT_ALWAYS_INLINE std::uint32_t sub_bucket_index(std::uint64_t value, int bidx) noexcept {
     return static_cast<std::uint32_t>(value >> bidx);  // unit magnitude 0
   }
   static HFT_ALWAYS_INLINE std::size_t counts_index(std::uint64_t value) noexcept {
@@ -151,8 +146,8 @@ class Histogram {
     // Signed arithmetic: in the first octave (bidx==0) sidx < subBucketHalfCount
     // so the offset is negative — the sum stays correct, but doing it unsigned
     // would underflow into a gigantic index. (Classic HdrHistogram detail.)
-    const std::int64_t bucket_base =
-        static_cast<std::int64_t>(bidx + 1) << kSubBucketHalfCountMagnitude;
+    const std::int64_t bucket_base = static_cast<std::int64_t>(bidx + 1)
+                                     << kSubBucketHalfCountMagnitude;
     const std::int64_t offset =
         static_cast<std::int64_t>(sidx) - static_cast<std::int64_t>(kSubBucketHalfCount);
     return static_cast<std::size_t>(bucket_base + offset);
@@ -163,8 +158,7 @@ class Histogram {
     // Recover (bucketIndex, subBucketIndex) from the flat index.
     int bidx = static_cast<int>(index >> kSubBucketHalfCountMagnitude) - 1;
     std::uint32_t sidx =
-        static_cast<std::uint32_t>(index & (kSubBucketHalfCount - 1)) +
-        kSubBucketHalfCount;
+        static_cast<std::uint32_t>(index & (kSubBucketHalfCount - 1)) + kSubBucketHalfCount;
     if (bidx < 0) {  // first (linear) bucket: indices 0..kSubBucketHalfCount-1
       bidx = 0;
       sidx = static_cast<std::uint32_t>(index);

@@ -43,15 +43,15 @@ struct Rng {
 class SimExchange {
  public:
   struct Config {
-    Endpoint feed_dst;             // where to publish the feed
-    Endpoint fill_dst;             // where to publish fills
-    std::uint16_t order_bind_port; // where to listen for orders (0 = ephemeral)
+    Endpoint feed_dst;              // where to publish the feed
+    Endpoint fill_dst;              // where to publish fills
+    std::uint16_t order_bind_port;  // where to listen for orders (0 = ephemeral)
     std::uint32_t symbol;
-    long rate;                     // feed msgs/sec (0 = max)
-    long batch;                    // messages per datagram (1..40)
+    long rate;   // feed msgs/sec (0 = max)
+    long batch;  // messages per datagram (1..40)
     std::uint64_t seed;
-    std::int64_t base_price;       // starting mid (fixed point)
-    std::int64_t tick;             // tick size (fixed point)
+    std::int64_t base_price;  // starting mid (fixed point)
+    std::int64_t tick;        // tick size (fixed point)
   };
 
   explicit SimExchange(const Config& c)
@@ -65,14 +65,14 @@ class SimExchange {
         mid_(c.base_price),
         best_bid_(c.base_price - c.tick),
         best_ask_(c.base_price + c.tick),
-        mid_lo_(c.base_price - 1500 * c.tick),  // keep the walk in a +/-$15 band
+        mid_lo_(c.base_price - 1500 * c.tick),   // keep the walk in a +/-$15 band
         mid_hi_(c.base_price + 1500 * c.tick) {  // so quotes stay in the book window
     order_rx_.set_nonblocking(true);
     feed_tx_.set_send_buffer(1 << 20);
     const double cyc_per_ns = tsc_calibration().cycles_per_ns;
-    cycles_per_msg_ = (c.rate > 0)
-        ? static_cast<std::uint64_t>(1e9 / static_cast<double>(c.rate) * cyc_per_ns)
-        : 0;
+    cycles_per_msg_ =
+        (c.rate > 0) ? static_cast<std::uint64_t>(1e9 / static_cast<double>(c.rate) * cyc_per_ns)
+                     : 0;
   }
 
   std::uint16_t order_local_port() const { return order_rx_.local_port(); }
@@ -121,7 +121,8 @@ class SimExchange {
 
   void emit(MsgType type, Side side, std::int64_t px, std::uint32_t size) {
     if (cycles_per_msg_) {
-      while (tsc_now() < next_send_) { /* pace */ }
+      while (tsc_now() < next_send_) { /* pace */
+      }
       next_send_ += cycles_per_msg_;
     }
     ItchMessage m{};
@@ -140,8 +141,7 @@ class SimExchange {
 
   void flush() {
     if (dgram_msgs_ > 0) {
-      feed_tx_.send_to(feed_dst_, dgram_.data(),
-                       static_cast<std::size_t>(dgram_msgs_) * kMsgSize);
+      feed_tx_.send_to(feed_dst_, dgram_.data(), static_cast<std::size_t>(dgram_msgs_) * kMsgSize);
       dgram_msgs_ = 0;
     }
   }

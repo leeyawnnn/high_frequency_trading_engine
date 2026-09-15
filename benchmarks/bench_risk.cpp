@@ -4,9 +4,9 @@
 // latency the gate adds to every order that actually goes out. The position
 // limit is kept generous and fills net to zero so we never reject; the rate
 // limiter is exercised in a separate high-rate configuration.
+#include "hft/itch_message.hpp"
 #include "hft/order_msg.hpp"
 #include "hft/risk_gate.hpp"
-#include "hft/itch_message.hpp"
 #include "hft/tsc.hpp"
 
 #include <atomic>
@@ -23,8 +23,7 @@ int main(int argc, char** argv) {
   // (100 M/s) with an enormous burst so the GCRA token bucket DOES run its
   // tsc_now() every check (measuring the real full path) yet never rejects
   // within this loop.
-  hft::RiskGate g(hft::RiskLimits{std::int64_t{1} << 40, 1'000'000,
-                                  100'000'000.0, 2'000'000'000u},
+  hft::RiskGate g(hft::RiskLimits{std::int64_t{1} << 40, 1'000'000, 100'000'000.0, 2'000'000'000u},
                   kill);
 
   // Alternate buy/sell so net position oscillates and never hits the bound.
@@ -38,8 +37,7 @@ int main(int argc, char** argv) {
   volatile std::uint64_t sink = 0;
   const std::uint64_t t0 = hft::tsc_now_serialized();
   for (int i = 0; i < n; ++i) {
-    sink += static_cast<std::uint64_t>(
-        g.check(orders[static_cast<std::size_t>(i & 1)]));
+    sink += static_cast<std::uint64_t>(g.check(orders[static_cast<std::size_t>(i & 1)]));
   }
   const std::uint64_t t1 = hft::tsc_now_serialized();
   (void)sink;
@@ -48,7 +46,6 @@ int main(int argc, char** argv) {
   std::printf("risk gate check() [all checks, accept path]\n");
   std::printf("  per check : %.2f ns   (target < 100 ns)\n", ns / n);
   std::printf("  throughput: %.0f M checks/sec\n", static_cast<double>(n) / (ns / 1e9) / 1e6);
-  std::printf("  accepted  : %llu / %d\n",
-              static_cast<unsigned long long>(g.accepted()), n);
+  std::printf("  accepted  : %llu / %d\n", static_cast<unsigned long long>(g.accepted()), n);
   return 0;
 }

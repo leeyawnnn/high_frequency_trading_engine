@@ -1,7 +1,7 @@
 // Phase 1: latency histogram. Records 1M samples and verifies percentiles
 // against an exact sorted reference, plus exactness on the linear low range.
-#include "test_harness.hpp"
 #include "hft/histogram.hpp"
+#include "test_harness.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -14,11 +14,9 @@ namespace {
 // Exact nearest-rank percentile over a sorted vector, using the SAME rank
 // convention as Histogram::percentile so we isolate bucket error from any
 // off-by-one in rank selection.
-std::uint64_t reference_percentile(const std::vector<std::uint64_t>& sorted,
-                                   double p) {
+std::uint64_t reference_percentile(const std::vector<std::uint64_t>& sorted, double p) {
   const std::uint64_t n = sorted.size();
-  std::uint64_t want = static_cast<std::uint64_t>(
-      (p / 100.0) * static_cast<double>(n) + 0.5);
+  std::uint64_t want = static_cast<std::uint64_t>((p / 100.0) * static_cast<double>(n) + 0.5);
   if (want == 0) want = 1;
   if (want > n) want = n;
   return sorted[want - 1];
@@ -76,8 +74,7 @@ HFT_TEST(percentiles_match_reference_1M) {
   CHECK_EQ(h.min(), ref.front());
   CHECK_EQ(h.max(), ref.back());
 
-  const double exact_mean =
-      static_cast<double>(exact_sum) / static_cast<double>(kN);
+  const double exact_mean = static_cast<double>(exact_sum) / static_cast<double>(kN);
   CHECK_NEAR(h.mean(), exact_mean, 1e-9);
 
   // PrecisionBits=5 → <=3.125% bucket error. Allow 4% to cover rounding.
@@ -85,13 +82,11 @@ HFT_TEST(percentiles_match_reference_1M) {
     const std::uint64_t got = h.percentile(p);
     const std::uint64_t want = reference_percentile(ref, p);
     const double rel =
-        std::fabs(static_cast<double>(got) - static_cast<double>(want)) /
-        static_cast<double>(want);
+        std::fabs(static_cast<double>(got) - static_cast<double>(want)) / static_cast<double>(want);
     if (rel > 0.04) {
-      std::fprintf(stderr,
-                   "    p%.2f: hist=%llu ref=%llu rel=%.4f\n", p,
-                   static_cast<unsigned long long>(got),
-                   static_cast<unsigned long long>(want), rel);
+      std::fprintf(stderr, "    p%.2f: hist=%llu ref=%llu rel=%.4f\n", p,
+                   static_cast<unsigned long long>(got), static_cast<unsigned long long>(want),
+                   rel);
     }
     CHECK(rel <= 0.04);
   }

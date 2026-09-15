@@ -1,10 +1,10 @@
 // Phase 10: full-engine integration. Runs the wired Engine and a SimExchange
 // in-process over loopback and checks that the whole pipeline carries data end
 // to end — orders flow, fills come back, and the e2e latency histogram fills.
-#include "test_harness.hpp"
 #include "hft/engine.hpp"
 #include "hft/sim_exchange.hpp"
 #include "hft/tsc.hpp"
+#include "test_harness.hpp"
 
 #include <atomic>
 #include <chrono>
@@ -16,12 +16,12 @@
 // is only meaningful in an uninstrumented build. TSan/ASan still validate
 // correctness and data-race freedom of the full pipeline.
 #if defined(__has_feature)
-#  if __has_feature(thread_sanitizer) || __has_feature(address_sanitizer)
-#    define HFT_SANITIZED 1
-#  endif
+#if __has_feature(thread_sanitizer) || __has_feature(address_sanitizer)
+#define HFT_SANITIZED 1
+#endif
 #endif
 #if defined(__SANITIZE_THREAD__) || defined(__SANITIZE_ADDRESS__)
-#  define HFT_SANITIZED 1
+#define HFT_SANITIZED 1
 #endif
 
 HFT_TEST(end_to_end_pipeline_carries_data) {
@@ -38,9 +38,15 @@ HFT_TEST(end_to_end_pipeline_carries_data) {
 
   // Exchange on an ephemeral order port, moderate rate.
   hft::SimExchange::Config xcfg{
-      hft::Endpoint::v4("127.0.0.1", 1), hft::Endpoint::v4("127.0.0.1", 1),
-      0, hft::pack_symbol("TST"), /*rate*/ 300'000, /*batch*/ 8, 0x5EED,
-      hft::price_from_double(100.0), hft::kPriceScale / 100,
+      hft::Endpoint::v4("127.0.0.1", 1),
+      hft::Endpoint::v4("127.0.0.1", 1),
+      0,
+      hft::pack_symbol("TST"),
+      /*rate*/ 300'000,
+      /*batch*/ 8,
+      0x5EED,
+      hft::price_from_double(100.0),
+      hft::kPriceScale / 100,
   };
   hft::SimExchange exch(xcfg);
 

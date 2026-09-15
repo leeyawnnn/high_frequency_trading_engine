@@ -1,8 +1,8 @@
 // Phase 6: HFT-shaped flat-array order book, verified against a slow std::map
 // reference implementation.
-#include "test_harness.hpp"
 #include "hft/book_view.hpp"
 #include "hft/itch_message.hpp"
+#include "test_harness.hpp"
 
 #include <cstdint>
 #include <map>
@@ -37,8 +37,8 @@ class ReferenceBook {
 
   bool has_bid() const { return !bids_.empty(); }
   bool has_ask() const { return !asks_.empty(); }
-  std::int64_t best_bid_price() const { return bids_.rbegin()->first; }   // highest
-  std::int64_t best_ask_price() const { return asks_.begin()->first; }    // lowest
+  std::int64_t best_bid_price() const { return bids_.rbegin()->first; }  // highest
+  std::int64_t best_ask_price() const { return asks_.begin()->first; }   // lowest
   std::uint32_t best_bid_size() const { return bids_.rbegin()->second; }
   std::uint32_t best_ask_size() const { return asks_.begin()->second; }
 
@@ -115,8 +115,8 @@ HFT_TEST(out_of_range_is_ignored_and_counted) {
   const std::int64_t base = hft::price_from_double(100.00);
   const std::int64_t tick = hft::kPriceScale / 100;
   hft::BookView<16> b(base, tick);  // tiny 16-tick window
-  b.apply(mk(hft::MsgType::kAdd, hft::Side::kBuy, hft::price_from_double(50.00), 100));  // below
-  b.apply(mk(hft::MsgType::kAdd, hft::Side::kSell, hft::price_from_double(200.00), 100)); // above
+  b.apply(mk(hft::MsgType::kAdd, hft::Side::kBuy, hft::price_from_double(50.00), 100));    // below
+  b.apply(mk(hft::MsgType::kAdd, hft::Side::kSell, hft::price_from_double(200.00), 100));  // above
   CHECK(!b.has_bid());
   CHECK(!b.has_ask());
   CHECK_EQ(b.out_of_range(), 2u);
@@ -141,10 +141,14 @@ HFT_TEST(matches_reference_over_random_stream) {
     const hft::Side side = (rng() & 1) ? hft::Side::kBuy : hft::Side::kSell;
     const int roll = which(rng);
     hft::MsgType type;
-    if (roll < 5) type = hft::MsgType::kAdd;          // 50% add
-    else if (roll < 8) type = hft::MsgType::kExecute; // 30% execute
-    else if (roll < 9) type = hft::MsgType::kCancel;  // 10% cancel
-    else type = hft::MsgType::kDelete;                // 10% delete
+    if (roll < 5)
+      type = hft::MsgType::kAdd;  // 50% add
+    else if (roll < 8)
+      type = hft::MsgType::kExecute;  // 30% execute
+    else if (roll < 9)
+      type = hft::MsgType::kCancel;  // 10% cancel
+    else
+      type = hft::MsgType::kDelete;  // 10% delete
 
     const hft::ItchMessage m = mk(type, side, price, sz(rng));
     fast.apply(m);
@@ -152,7 +156,7 @@ HFT_TEST(matches_reference_over_random_stream) {
 
     if ((i & 0x3FF) == 0) check_match(fast, ref);  // compare periodically
   }
-  check_match(fast, ref);  // and at the end
+  check_match(fast, ref);             // and at the end
   CHECK_EQ(fast.out_of_range(), 0u);  // we kept everything in-window
 }
 

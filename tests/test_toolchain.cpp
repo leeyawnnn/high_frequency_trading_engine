@@ -3,8 +3,8 @@
 //   - The hft include path resolves.
 //   - Optimization/define plumbing reaches translation units.
 // Real functional tests arrive with each subsequent phase.
-#include "test_harness.hpp"
 #include "hft/version.hpp"
+#include "test_harness.hpp"
 
 HFT_TEST(cpp20_in_effect) {
   // __cplusplus for C++20 is 202002L. AppleClang reports 202002 for -std=c++20.

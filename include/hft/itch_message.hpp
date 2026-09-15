@@ -34,16 +34,16 @@ namespace hft {
 
 enum class MsgType : std::uint8_t {
   kUnknown = 0,
-  kAdd     = 'A',  // add liquidity at (side, price): resting size += size
+  kAdd = 'A',      // add liquidity at (side, price): resting size += size
   kExecute = 'E',  // trade against resting liquidity: resting size -= size
-  kCancel  = 'X',  // partial cancel: resting size -= size
-  kDelete  = 'D',  // remove the whole level at (side, price)
-  kTrade   = 'P',  // print / last-sale (informational)
+  kCancel = 'X',   // partial cancel: resting size -= size
+  kDelete = 'D',   // remove the whole level at (side, price)
+  kTrade = 'P',    // print / last-sale (informational)
 };
 
 enum class Side : std::uint8_t {
   kNone = 0,
-  kBuy  = 'B',
+  kBuy = 'B',
   kSell = 'S',
 };
 
@@ -53,8 +53,7 @@ enum class Side : std::uint8_t {
 inline constexpr std::int64_t kPriceScale = 10'000;
 
 inline constexpr std::int64_t price_from_double(double px) noexcept {
-  return static_cast<std::int64_t>(px * static_cast<double>(kPriceScale) +
-                                   (px < 0 ? -0.5 : 0.5));
+  return static_cast<std::int64_t>(px * static_cast<double>(kPriceScale) + (px < 0 ? -0.5 : 0.5));
 }
 inline constexpr double price_to_double(std::int64_t px) noexcept {
   return static_cast<double>(px) / static_cast<double>(kPriceScale);
@@ -79,12 +78,12 @@ inline void unpack_symbol(std::uint32_t sym, char out[5]) noexcept {
 #pragma pack(push, 1)
 struct ItchMessage {
   std::uint64_t timestamp;  // @0  exchange send stamp (TSC cycles or ns)
-  std::int64_t  price;      // @8  fixed-point (see kPriceScale)
+  std::int64_t price;       // @8  fixed-point (see kPriceScale)
   std::uint32_t symbol;     // @16 packed 4-char ticker
   std::uint32_t size;       // @20 shares
   std::uint32_t seq;        // @24 monotonic sequence number (gap detection)
-  std::uint8_t  type;       // @28 MsgType
-  std::uint8_t  side;       // @29 Side
+  std::uint8_t type;        // @28 MsgType
+  std::uint8_t side;        // @29 Side
   std::uint16_t flags;      // @30 reserved / message flags
 };
 #pragma pack(pop)

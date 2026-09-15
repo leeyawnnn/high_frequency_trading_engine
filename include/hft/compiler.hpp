@@ -6,22 +6,22 @@
 
 // ---- Inlining -------------------------------------------------------------
 #if defined(__GNUC__) || defined(__clang__)
-#  define HFT_ALWAYS_INLINE inline __attribute__((always_inline))
-#  define HFT_NOINLINE __attribute__((noinline))
-#  define HFT_RESTRICT __restrict__
+#define HFT_ALWAYS_INLINE inline __attribute__((always_inline))
+#define HFT_NOINLINE __attribute__((noinline))
+#define HFT_RESTRICT __restrict__
 #else
-#  define HFT_ALWAYS_INLINE inline
-#  define HFT_NOINLINE
-#  define HFT_RESTRICT
+#define HFT_ALWAYS_INLINE inline
+#define HFT_NOINLINE
+#define HFT_RESTRICT
 #endif
 
 // ---- Branch hints (expression-level; complements C++20 [[likely]]) --------
 #if defined(__GNUC__) || defined(__clang__)
-#  define HFT_LIKELY(x)   (__builtin_expect(!!(x), 1))
-#  define HFT_UNLIKELY(x) (__builtin_expect(!!(x), 0))
+#define HFT_LIKELY(x) (__builtin_expect(!!(x), 1))
+#define HFT_UNLIKELY(x) (__builtin_expect(!!(x), 0))
 #else
-#  define HFT_LIKELY(x)   (x)
-#  define HFT_UNLIKELY(x) (x)
+#define HFT_LIKELY(x) (x)
+#define HFT_UNLIKELY(x) (x)
 #endif
 
 namespace hft {

@@ -42,8 +42,7 @@ class BookView {
 
  public:
   // base_price = fixed-point price at index 0; tick = fixed-point tick size.
-  BookView(std::int64_t base_price, std::int64_t tick) noexcept
-      : base_(base_price), tick_(tick) {}
+  BookView(std::int64_t base_price, std::int64_t tick) noexcept : base_(base_price), tick_(tick) {}
 
   // Apply one market-data message. O(1) except when the touched best level is
   // emptied (then a short walk to the next level).
@@ -146,8 +145,8 @@ class BookView {
 
   std::array<std::uint32_t, NumTicks> bid_{};
   std::array<std::uint32_t, NumTicks> ask_{};
-  int best_bid_idx_ = -1;                            // -1 => no bid
-  int best_ask_idx_ = static_cast<int>(NumTicks);    // NumTicks => no ask
+  int best_bid_idx_ = -1;                          // -1 => no bid
+  int best_ask_idx_ = static_cast<int>(NumTicks);  // NumTicks => no ask
   std::int64_t base_;
   std::int64_t tick_;
   std::uint64_t out_of_range_ = 0;

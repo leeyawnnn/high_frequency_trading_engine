@@ -18,13 +18,15 @@
 #include <thread>
 
 #if defined(__linux__)
-#  include <pthread.h>
-#  include <sched.h>
+#include <pthread.h>
+#include <sched.h>
 #endif
 
 namespace {
 std::atomic<bool> g_running{true};
-void on_signal(int) { g_running.store(false); }
+void on_signal(int) {
+  g_running.store(false);
+}
 
 void pin_cpu([[maybe_unused]] int core) {
 #if defined(__linux__)

@@ -58,12 +58,8 @@ class SpscQueue {
 
   // ---- producer side -------------------------------------------------------
   // Returns false if the queue is full (caller decides whether to spin/drop).
-  HFT_ALWAYS_INLINE bool push(const T& value) noexcept {
-    return emplace_from(value);
-  }
-  HFT_ALWAYS_INLINE bool push(T&& value) noexcept {
-    return emplace_from(std::move(value));
-  }
+  HFT_ALWAYS_INLINE bool push(const T& value) noexcept { return emplace_from(value); }
+  HFT_ALWAYS_INLINE bool push(T&& value) noexcept { return emplace_from(std::move(value)); }
 
   // ---- consumer side -------------------------------------------------------
   // Returns false if the queue is empty.

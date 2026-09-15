@@ -14,7 +14,7 @@
 #include <pthread.h>
 
 #if defined(__linux__)
-#  include <sched.h>
+#include <sched.h>
 #endif
 
 namespace hft {

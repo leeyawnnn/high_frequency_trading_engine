@@ -8,11 +8,11 @@
 // This is test-only code: allocations and STL use are fine here.
 #pragma once
 
-#include <cstdio>
 #include <cmath>
+#include <cstdio>
+#include <functional>
 #include <string>
 #include <vector>
-#include <functional>
 
 namespace hft::test {
 
@@ -67,37 +67,38 @@ inline int run_all() {
 }  // namespace hft::test
 
 // ---- Registration -----------------------------------------------------------
-#define HFT_TEST(name)                                                          \
-  static void name();                                                           \
-  static ::hft::test::Registrar hft_reg_##name(#name, name);                    \
+#define HFT_TEST(name)                                       \
+  static void name();                                        \
+  static ::hft::test::Registrar hft_reg_##name(#name, name); \
   static void name()
 
 // ---- Assertions -------------------------------------------------------------
-#define CHECK(cond)                                                             \
-  do {                                                                          \
-    if (!(cond))                                                                \
-      ::hft::test::report_failure(__FILE__, __LINE__, "CHECK(" #cond ")");      \
+#define CHECK(cond)                                                                   \
+  do {                                                                                \
+    if (!(cond)) ::hft::test::report_failure(__FILE__, __LINE__, "CHECK(" #cond ")"); \
   } while (0)
 
-#define CHECK_EQ(a, b)                                                          \
-  do {                                                                          \
-    auto _va = (a);                                                             \
-    auto _vb = (b);                                                             \
-    if (!(_va == _vb))                                                          \
-      ::hft::test::report_failure(__FILE__, __LINE__,                           \
-        std::string("CHECK_EQ(" #a ", " #b ") -> ") +                          \
-        std::to_string(_va) + " != " + std::to_string(_vb));                    \
+#define CHECK_EQ(a, b)                                                                     \
+  do {                                                                                     \
+    auto _va = (a);                                                                        \
+    auto _vb = (b);                                                                        \
+    if (!(_va == _vb))                                                                     \
+      ::hft::test::report_failure(__FILE__, __LINE__,                                      \
+                                  std::string("CHECK_EQ(" #a ", " #b ") -> ") +            \
+                                      std::to_string(_va) + " != " + std::to_string(_vb)); \
   } while (0)
 
-#define CHECK_NEAR(a, b, rel)                                                   \
-  do {                                                                          \
-    double _va = static_cast<double>(a);                                        \
-    double _vb = static_cast<double>(b);                                        \
-    if (!::hft::test::approx_eq(_va, _vb, (rel)))                               \
-      ::hft::test::report_failure(__FILE__, __LINE__,                           \
-        std::string("CHECK_NEAR(" #a ", " #b ") -> ") +                        \
-        std::to_string(_va) + " vs " + std::to_string(_vb));                    \
+#define CHECK_NEAR(a, b, rel)                                                              \
+  do {                                                                                     \
+    double _va = static_cast<double>(a);                                                   \
+    double _vb = static_cast<double>(b);                                                   \
+    if (!::hft::test::approx_eq(_va, _vb, (rel)))                                          \
+      ::hft::test::report_failure(__FILE__, __LINE__,                                      \
+                                  std::string("CHECK_NEAR(" #a ", " #b ") -> ") +          \
+                                      std::to_string(_va) + " vs " + std::to_string(_vb)); \
   } while (0)
 
-#define HFT_TEST_MAIN()                                                         \
-  int main() { return ::hft::test::run_all(); }
+#define HFT_TEST_MAIN()            \
+  int main() {                     \
+    return ::hft::test::run_all(); \
+  }

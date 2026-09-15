@@ -23,7 +23,7 @@
 
 #include "hft/book_view.hpp"
 #include "hft/compiler.hpp"
-#include "hft/feed_handler.hpp"   // MdEvent
+#include "hft/feed_handler.hpp"  // MdEvent
 #include "hft/histogram.hpp"
 #include "hft/itch_message.hpp"
 #include "hft/order_msg.hpp"
@@ -32,10 +32,10 @@
 namespace hft {
 
 struct StrategyParams {
-  std::int64_t base_price;        // book window base (fixed point)
-  std::int64_t tick;              // tick size (fixed point)
-  double threshold;               // imbalance trigger in (0, 1)
-  std::uint32_t order_size;       // shares per order
+  std::int64_t base_price;   // book window base (fixed point)
+  std::int64_t tick;         // tick size (fixed point)
+  double threshold;          // imbalance trigger in (0, 1)
+  std::uint32_t order_size;  // shares per order
 };
 
 template <std::size_t NumTicks>
@@ -80,7 +80,7 @@ class ImbalanceStrategy {
     const bool is_buy = want_buy;
     OrderRequest o{};
     o.order_id = ++last_order_id_;
-    o.md_timestamp = ev.arrival_tsc;            // carry the e2e latency tag
+    o.md_timestamp = ev.arrival_tsc;  // carry the e2e latency tag
     o.symbol = ev.msg.symbol;
     o.size = order_size_;
     o.side = static_cast<std::uint8_t>(is_buy ? Side::kBuy : Side::kSell);
@@ -113,7 +113,7 @@ class ImbalanceStrategy {
 
  private:
   BookView<NumTicks> book_;
-  std::int64_t position_ = 0;       // net shares, in {-order_size, 0, +order_size}
+  std::int64_t position_ = 0;  // net shares, in {-order_size, 0, +order_size}
   std::uint64_t last_order_id_ = 0;
   std::uint64_t orders_sent_ = 0;
   std::uint64_t fills_seen_ = 0;
@@ -146,7 +146,8 @@ class StrategyRunner {
 
     const std::uint64_t t0 = tsc_now();
     strat_.on_md(ev, [&](const OrderRequest& o) {
-      while (HFT_UNLIKELY(!orders_->push(o))) { /* order queue backpressure */ }
+      while (HFT_UNLIKELY(!orders_->push(o))) { /* order queue backpressure */
+      }
       ++orders_pushed_;
     });
     latency_.record(tsc_to_ns_u(tsc_now() - t0));
@@ -179,8 +180,8 @@ class StrategyRunner {
 namespace hft {
 
 template <std::size_t NumTicks, typename FeedQ, typename OrderQ, typename FillQ>
-void StrategyRunner<NumTicks, FeedQ, OrderQ, FillQ>::run(
-    const std::atomic<bool>& running, int core) {
+void StrategyRunner<NumTicks, FeedQ, OrderQ, FillQ>::run(const std::atomic<bool>& running,
+                                                         int core) {
   pin_current_thread(core);
   set_current_thread_name("hft-strat");
   while (running.load(std::memory_order_relaxed)) {

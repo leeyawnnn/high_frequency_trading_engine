@@ -26,10 +26,10 @@
 #include <cstdint>
 
 #if defined(__x86_64__) || defined(_M_X64) || defined(__i386__)
-#  include <x86intrin.h>
-#  define HFT_TSC_X86 1
+#include <x86intrin.h>
+#define HFT_TSC_X86 1
 #else
-#  define HFT_TSC_X86 0
+#define HFT_TSC_X86 0
 #endif
 
 #include "hft/compiler.hpp"
@@ -52,8 +52,7 @@ HFT_ALWAYS_INLINE std::uint64_t tsc_now() noexcept {
   return v;
 #else
   // Portable fallback: steady_clock in nanoseconds (slow; non-target only).
-  return static_cast<std::uint64_t>(
-      std::chrono::steady_clock::now().time_since_epoch().count());
+  return static_cast<std::uint64_t>(std::chrono::steady_clock::now().time_since_epoch().count());
 #endif
 }
 
@@ -113,11 +112,9 @@ inline TscCalibration calibrate_tsc() {
     const std::uint64_t c1 = tsc_now_serialized();
     const auto w1 = clock::now();
 
-    const double ns =
-        std::chrono::duration<double, std::nano>(w1 - w0).count();
+    const double ns = std::chrono::duration<double, std::nano>(w1 - w0).count();
     const double cycles = static_cast<double>(c1 - c0);
-    ns_per_cycle[static_cast<std::size_t>(i)] =
-        (cycles > 0.0) ? (ns / cycles) : 1.0;
+    ns_per_cycle[static_cast<std::size_t>(i)] = (cycles > 0.0) ? (ns / cycles) : 1.0;
   }
 
   std::sort(ns_per_cycle.begin(), ns_per_cycle.end());
@@ -140,7 +137,9 @@ inline const TscCalibration& tsc_calibration() {
 
 // Call once at startup to pay calibration cost up front (off the hot path),
 // rather than on the first reporting call.
-inline void tsc_calibrate() { (void)tsc_calibration(); }
+inline void tsc_calibrate() {
+  (void)tsc_calibration();
+}
 
 // ---------------------------------------------------------------------------
 // Conversion (cold path: reporting only).

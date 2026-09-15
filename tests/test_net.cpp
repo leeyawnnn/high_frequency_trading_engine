@@ -1,9 +1,9 @@
 // Phase 4: UDP transport + order/exec wire formats.
 // Loopback round-trip on ephemeral ports (works on macOS and Linux).
-#include "test_harness.hpp"
 #include "hft/itch_message.hpp"
 #include "hft/net.hpp"
 #include "hft/order_msg.hpp"
+#include "test_harness.hpp"
 
 #include <cstring>
 

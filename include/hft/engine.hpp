@@ -34,9 +34,9 @@ struct EngineConfig {
   int gateway_core = -1;
 
   // Networking.
-  std::uint16_t feed_port = 31337;          // feed handler binds (0 = ephemeral)
+  std::uint16_t feed_port = 31337;                        // feed handler binds (0 = ephemeral)
   Endpoint order_dst = Endpoint::v4("127.0.0.1", 31338);  // gateway -> exchange
-  std::uint16_t fill_port = 31339;          // gateway binds (0 = ephemeral)
+  std::uint16_t fill_port = 31339;                        // gateway binds (0 = ephemeral)
   const char* feed_bind = "0.0.0.0";
   const char* fill_bind = "0.0.0.0";
 
@@ -54,10 +54,8 @@ struct EngineConfig {
                   /*rate*/ 0.0, /*burst*/ 0};
 };
 
-template <std::size_t NumTicks = 4096,
-          std::size_t FeedQCap = (1u << 16),
-          std::size_t OrderQCap = (1u << 12),
-          std::size_t FillQCap = (1u << 12)>
+template <std::size_t NumTicks = 4096, std::size_t FeedQCap = (1u << 16),
+          std::size_t OrderQCap = (1u << 12), std::size_t FillQCap = (1u << 12)>
 class Engine {
  public:
   using FeedQ = SpscQueue<MdEvent, FeedQCap>;
@@ -70,10 +68,9 @@ class Engine {
   explicit Engine(const EngineConfig& cfg)
       : cfg_(cfg),
         feed_(cfg.feed_port, feed_q_, cfg.feed_bind),
-        strat_(StrategyParams{cfg.base_price, cfg.tick, cfg.threshold, cfg.order_size},
-               feed_q_, order_q_, &fill_q_),
-        gw_(order_q_, fill_q_, cfg.order_dst, cfg.fill_port, cfg.risk, kill_,
-            cfg.fill_bind) {}
+        strat_(StrategyParams{cfg.base_price, cfg.tick, cfg.threshold, cfg.order_size}, feed_q_,
+               order_q_, &fill_q_),
+        gw_(order_q_, fill_q_, cfg.order_dst, cfg.fill_port, cfg.risk, kill_, cfg.fill_bind) {}
 
   Engine(const Engine&) = delete;
   Engine& operator=(const Engine&) = delete;

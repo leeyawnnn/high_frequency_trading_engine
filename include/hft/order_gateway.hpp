@@ -45,8 +45,8 @@ class OrderGateway {
 
  public:
   OrderGateway(OrderQueue& orders, FillQueue& fills_out, const Endpoint& order_dst,
-               std::uint16_t fill_port, const RiskLimits& limits,
-               const std::atomic<bool>& kill, const char* fill_bind = "0.0.0.0")
+               std::uint16_t fill_port, const RiskLimits& limits, const std::atomic<bool>& kill,
+               const char* fill_bind = "0.0.0.0")
       : orders_(&orders),
         fills_out_(&fills_out),
         order_dst_(order_dst),
@@ -85,8 +85,7 @@ class OrderGateway {
     order_tx_.send_to(order_dst_, &o, sizeof(o));  // OrderRequest is the wire msg
 
     gateway_latency_.record(tsc_to_ns_u(send_t - t0));
-    if (o.md_timestamp != 0)
-      e2e_inproc_.record(tsc_to_ns_u(send_t - o.md_timestamp));
+    if (o.md_timestamp != 0) e2e_inproc_.record(tsc_to_ns_u(send_t - o.md_timestamp));
     ++sent_;
     return true;
   }
@@ -120,9 +119,9 @@ class OrderGateway {
       slot.active = false;
       ++fills_matched_;
       risk_.on_fill(rep);  // authoritative position update
-      if (rep.md_timestamp != 0)
-        round_trip_.record(tsc_to_ns_u(tsc_now() - rep.md_timestamp));
-      while (HFT_UNLIKELY(!fills_out_->push(rep))) { /* to strategy */ }
+      if (rep.md_timestamp != 0) round_trip_.record(tsc_to_ns_u(tsc_now() - rep.md_timestamp));
+      while (HFT_UNLIKELY(!fills_out_->push(rep))) { /* to strategy */
+      }
     } else {
       ++fills_unmatched_;  // duplicate, stale, or table collision
     }
@@ -152,8 +151,8 @@ class OrderGateway {
 namespace hft {
 
 template <typename OrderQueue, typename FillQueue, std::size_t InFlightCapacity>
-void OrderGateway<OrderQueue, FillQueue, InFlightCapacity>::run(
-    const std::atomic<bool>& running, int core) {
+void OrderGateway<OrderQueue, FillQueue, InFlightCapacity>::run(const std::atomic<bool>& running,
+                                                                int core) {
   pin_current_thread(core);
   set_current_thread_name("hft-gw");
   while (running.load(std::memory_order_relaxed)) {

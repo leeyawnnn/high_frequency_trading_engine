@@ -25,8 +25,7 @@ HFT_ALWAYS_INLINE ItchMessage parse_message(const std::byte* src) noexcept {
 }
 
 // Encode `m` into `dst` (must point to >= kMsgSize writable bytes).
-HFT_ALWAYS_INLINE void encode_message(const ItchMessage& m,
-                                      std::byte* dst) noexcept {
+HFT_ALWAYS_INLINE void encode_message(const ItchMessage& m, std::byte* dst) noexcept {
   std::memcpy(dst, &m, kMsgSize);
 }
 
@@ -35,8 +34,7 @@ HFT_ALWAYS_INLINE void encode_message(const ItchMessage& m,
 // of its own — it is a cursor over caller-owned bytes.
 class FeedReader {
  public:
-  FeedReader(const std::byte* data, std::size_t bytes) noexcept
-      : cur_(data), end_(data + bytes) {}
+  FeedReader(const std::byte* data, std::size_t bytes) noexcept : cur_(data), end_(data + bytes) {}
 
   // True if at least one more whole frame remains.
   HFT_ALWAYS_INLINE bool has_next() const noexcept {
@@ -51,9 +49,7 @@ class FeedReader {
   }
 
   // Bytes left over that don't form a whole frame (a truncated tail).
-  std::size_t remaining_bytes() const noexcept {
-    return static_cast<std::size_t>(end_ - cur_);
-  }
+  std::size_t remaining_bytes() const noexcept { return static_cast<std::size_t>(end_ - cur_); }
 
  private:
   const std::byte* cur_;

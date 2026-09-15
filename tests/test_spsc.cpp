@@ -1,7 +1,7 @@
 // Phase 2: lock-free SPSC ring buffer.
-#include "test_harness.hpp"
-#include "hft/spsc_queue.hpp"
 #include "hft/compiler.hpp"
+#include "hft/spsc_queue.hpp"
+#include "test_harness.hpp"
 
 #include <atomic>
 #include <cstddef>
@@ -13,12 +13,12 @@
 // particular is ~20x slower) — correctness of the protocol, not throughput, is
 // what those builds verify.
 #if defined(__has_feature)
-#  if __has_feature(thread_sanitizer) || __has_feature(address_sanitizer)
-#    define HFT_SANITIZED 1
-#  endif
+#if __has_feature(thread_sanitizer) || __has_feature(address_sanitizer)
+#define HFT_SANITIZED 1
+#endif
 #endif
 #if defined(__SANITIZE_THREAD__) || defined(__SANITIZE_ADDRESS__)
-#  define HFT_SANITIZED 1
+#define HFT_SANITIZED 1
 #endif
 
 namespace {
@@ -32,17 +32,17 @@ constexpr std::uint64_t kStressItems = 100'000'000;
 HFT_TEST(single_threaded_roundtrip) {
   hft::SpscQueue<int, 8> q;
   int out = -1;
-  CHECK(!q.pop(out));        // empty
+  CHECK(!q.pop(out));  // empty
   CHECK(q.empty_approx());
   for (int i = 0; i < 7; ++i) CHECK(q.push(i));  // fill to capacity-1
-  CHECK(q.push(7));          // 8th element fills it (capacity 8)
-  CHECK(!q.push(8));         // now full
+  CHECK(q.push(7));                              // 8th element fills it (capacity 8)
+  CHECK(!q.push(8));                             // now full
   CHECK_EQ(q.size_approx(), 8u);
   for (int i = 0; i < 8; ++i) {
     CHECK(q.pop(out));
-    CHECK_EQ(out, i);        // FIFO order preserved
+    CHECK_EQ(out, i);  // FIFO order preserved
   }
-  CHECK(!q.pop(out));        // empty again
+  CHECK(!q.pop(out));  // empty again
 }
 
 HFT_TEST(wraparound_many_cycles) {
@@ -76,7 +76,7 @@ HFT_TEST(two_thread_no_drops_no_dups) {
     std::uint64_t value = 0;
     while (expected < kStressItems) {
       if (q->pop(value)) {
-        if (value != expected) {        // out of order => drop or dup
+        if (value != expected) {  // out of order => drop or dup
           consumer_failed.store(true, std::memory_order_relaxed);
           break;
         }

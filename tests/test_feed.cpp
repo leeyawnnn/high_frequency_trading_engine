@@ -1,5 +1,4 @@
 // Phase 5: feed-handler stage (socket -> parse -> tag -> SPSC).
-#include "test_harness.hpp"
 #include "hft/affinity.hpp"
 #include "hft/feed_handler.hpp"
 #include "hft/itch_message.hpp"
@@ -7,6 +6,7 @@
 #include "hft/net.hpp"
 #include "hft/spsc_queue.hpp"
 #include "hft/tsc.hpp"
+#include "test_harness.hpp"
 
 #include <cstddef>
 #include <cstdint>
