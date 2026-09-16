@@ -4,6 +4,10 @@ A low-latency C++20 market-data-to-order pipeline: a feed handler, a flat-array
 order book, an imbalance strategy and a pre-trade risk gate, wired together by
 lock-free queues and instrumented end to end with a cycle counter.
 
+[![ci](https://github.com/leeyawnnn/high_frequency_trading_engine/actions/workflows/ci.yml/badge.svg?branch=fix/portfolio-review)](https://github.com/leeyawnnn/high_frequency_trading_engine/actions/workflows/ci.yml)
+[![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![standard](https://img.shields.io/badge/C%2B%2B-20-blue.svg)](https://en.cppreference.com/w/cpp/20)
+
 ## Results
 
 <!-- BEGIN GENERATED RESULTS -->
