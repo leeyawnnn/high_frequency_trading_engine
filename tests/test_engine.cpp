@@ -85,11 +85,31 @@ HFT_TEST(end_to_end_pipeline_carries_data) {
   CHECK(engine->strategy().strategy().position() <= 100);
   CHECK(engine->strategy().strategy().position() >= -100);
 
-  // Sanity: the e2e p50 is a real, finite number well under a millisecond.
-  // (Skipped under sanitizers, whose slowdown inflates wall-clock latency.)
-#if !defined(HFT_SANITIZED)
-  CHECK(engine->e2e_latency().percentile(50.0) < 1'000'000u);
-#endif
+  // The latency histogram is internally consistent.
+  //
+  // This used to assert that the end-to-end p50 was under a millisecond, with
+  // the threshold compiled out under sanitizers because their slowdown broke
+  // it. That exemption was the tell: a wall-clock bound is a property of the
+  // machine, and this machine is whatever CI happened to schedule the job on.
+  // It failed reliably on Debug legs and on macOS runners, and it can be
+  // reproduced on any box by running this binary while the cores are busy --
+  // the median rises past a millisecond and a correctness test reports a
+  // defect that is not there.
+  //
+  // What can be asserted without knowing the machine is that the measurement
+  // is coherent: samples exist, the percentiles are ordered, and nothing
+  // exceeds the histogram's trackable range. The latency budget itself belongs
+  // to benchmarks/ and to the published report, where a slow number is a
+  // number to explain rather than a build failure.
+  // Note these are bucket upper bounds, not observed values: percentile() may
+  // legitimately exceed max(), so the invariant is monotonicity across
+  // percentiles rather than any relation to max.
+  const auto& e2e = engine->e2e_latency();
+  CHECK(e2e.count() > 0);
+  CHECK(e2e.percentile(50.0) <= e2e.percentile(99.0));
+  CHECK(e2e.percentile(99.0) <= e2e.percentile(100.0));
+  CHECK(e2e.min() <= e2e.max());
+  CHECK(e2e.max() <= e2e.percentile(100.0));
 }
 
 HFT_TEST_MAIN()
