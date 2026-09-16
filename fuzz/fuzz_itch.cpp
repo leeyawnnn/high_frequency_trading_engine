@@ -14,7 +14,7 @@
 #include <cstdio>
 
 extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size) {
-  hft::ItchReader reader(reinterpret_cast<const std::byte*>(data), size);
+  hft::FeedReader reader(reinterpret_cast<const std::byte*>(data), size);
 
   std::size_t seen = 0;
   while (reader.has_next()) {

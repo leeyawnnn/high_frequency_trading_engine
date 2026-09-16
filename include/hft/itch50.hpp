@@ -125,36 +125,42 @@ struct Header {
 }
 
 // Expected body length for a type, or 0 when the type is not one we decode.
+//
+// Switches on the raw char rather than casting to Type. The byte comes off the
+// wire and may hold any of 256 values, most of which are not enumerators, and
+// casting one into a scoped enum is out of range -- the static analyser is
+// right to object. The enum stays as documentation of what we handle.
 [[nodiscard]] inline std::size_t expected_length(char type) noexcept {
-  switch (static_cast<Type>(type)) {
-    case Type::kSystemEvent:
+  switch (type) {
+    case 'S':
       return kLenSystemEvent;
-    case Type::kStockDirectory:
+    case 'R':
       return kLenStockDirectory;
-    case Type::kTradingAction:
+    case 'H':
       return kLenTradingAction;
-    case Type::kRegSho:
+    case 'Y':
       return kLenRegSho;
-    case Type::kMarketParticipant:
+    case 'L':
       return kLenMarketParticipant;
-    case Type::kAddOrder:
+    case 'A':
       return kLenAddOrder;
-    case Type::kAddOrderMpid:
+    case 'F':
       return kLenAddOrderMpid;
-    case Type::kOrderExecuted:
+    case 'E':
       return kLenOrderExecuted;
-    case Type::kOrderExecutedPrice:
+    case 'C':
       return kLenOrderExecutedPrice;
-    case Type::kOrderCancel:
+    case 'X':
       return kLenOrderCancel;
-    case Type::kOrderDelete:
+    case 'D':
       return kLenOrderDelete;
-    case Type::kOrderReplace:
+    case 'U':
       return kLenOrderReplace;
-    case Type::kTrade:
+    case 'P':
       return kLenTrade;
+    default:
+      return 0;
   }
-  return 0;
 }
 
 // ---- decoded order-book deltas ---------------------------------------------
@@ -208,9 +214,9 @@ class Decoder {
     out.timestamp_ns = h.timestamp_ns;
     out.stock_locate = h.stock_locate;
 
-    switch (static_cast<Type>(h.type)) {
-      case Type::kAddOrder:
-      case Type::kAddOrderMpid: {
+    switch (h.type) {
+      case 'A':
+      case 'F': {  // Add Order, with or without MPID attribution
         const std::uint64_t ref = be64(body + 11);
         const Side side =
             (std::to_integer<std::uint8_t>(body[19]) == 'B') ? Side::kBuy : Side::kSell;
@@ -224,22 +230,20 @@ class Decoder {
         out.size = shares;
         break;
       }
-      case Type::kOrderExecuted: {
+      case 'E':
+      case 'C': {
+        // Order Executed, and Executed With Price. Both reduce the resting
+        // order by the executed quantity, so the book delta is identical; 'C'
+        // additionally carries the execution price, which matters to a tape
+        // consumer and not to the book. Deliberately one branch.
         out = reduce(be64(body + 11), be32(body + 19), MsgType::kExecute, out);
         break;
       }
-      case Type::kOrderExecutedPrice: {
-        // Executed at a price other than the resting one. The resting order is
-        // still reduced by the executed quantity, so the book delta is the
-        // same; the execution price matters to a tape consumer, not the book.
-        out = reduce(be64(body + 11), be32(body + 19), MsgType::kExecute, out);
-        break;
-      }
-      case Type::kOrderCancel: {
+      case 'X': {  // Order Cancel: partial reduction
         out = reduce(be64(body + 11), be32(body + 19), MsgType::kCancel, out);
         break;
       }
-      case Type::kOrderDelete: {
+      case 'D': {  // Order Delete: remove whatever remains
         const std::uint64_t ref = be64(body + 11);
         auto it = orders_.find(ref);
         if (it == orders_.end()) {
@@ -254,7 +258,7 @@ class Decoder {
         orders_.erase(it);
         break;
       }
-      case Type::kOrderReplace: {
+      case 'U': {  // Order Replace: a delete plus an add
         // Replace is a delete of the original followed by an add of a new
         // order at a new reference. Only the delta for the removal is returned
         // here; the caller gets the add as the next call's delta via
@@ -282,15 +286,11 @@ class Decoder {
                               shares, h.timestamp_ns, h.stock_locate};
         break;
       }
-      case Type::kTrade:
-        // Non-displayable execution: printed to the tape, never on the book.
+      default:
+        // 'P' is a non-displayable execution: printed to the tape, never
+        // resting on the book. 'S', 'R', 'H', 'Y' and 'L' are administrative.
+        // All are decoded (the length check above passed) but change no level.
         break;
-      case Type::kSystemEvent:
-      case Type::kStockDirectory:
-      case Type::kTradingAction:
-      case Type::kRegSho:
-      case Type::kMarketParticipant:
-        break;  // administrative
     }
     stats_.live_orders = orders_.size();
     return out;

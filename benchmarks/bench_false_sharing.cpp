@@ -22,9 +22,11 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cerrno>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <memory>
 #include <thread>
 #include <vector>
@@ -83,6 +85,19 @@ struct Item {
   std::uint64_t seq;
   std::uint64_t a, b, c;
 };
+
+// Parse a core index, refusing anything that is not an integer. -1 means
+// "do not pin" and is the documented default.
+int parse_core(const char* s) {
+  char* end = nullptr;
+  errno = 0;
+  const long v = std::strtol(s, &end, 10);
+  if (errno != 0 || end == s || *end != '\0' || v < -1 || v > 4096) {
+    std::fprintf(stderr, "invalid core index '%s'; expected -1 or a small integer\n", s);
+    std::exit(2);
+  }
+  return static_cast<int>(v);
+}
 
 // Returns millions of ops/sec for one run of `Queue`.
 template <typename Queue>
@@ -151,8 +166,10 @@ double median_mops(int prod_core, int cons_core) {
 
 int main(int argc, char** argv) {
   hft::tsc_calibrate();
-  const int prod_core = (argc > 1) ? std::atoi(argv[1]) : -1;
-  const int cons_core = (argc > 2) ? std::atoi(argv[2]) : -1;
+  // strtol, not atoi: atoi cannot report a bad argument, so a typo would
+  // silently become core 0 and quietly change what is being measured.
+  const int prod_core = (argc > 1) ? parse_core(argv[1]) : -1;
+  const int cons_core = (argc > 2) ? parse_core(argv[2]) : -1;
 
   std::printf("==================== measurement conditions ====================\n");
   hft::print_clock_report(stdout);
