@@ -106,8 +106,7 @@ namespace hft {
 
 template <typename OutQueue>
 void FeedHandler<OutQueue>::run(const std::atomic<bool>& running, int core) {
-  pin_current_thread(core);
-  set_current_thread_name("hft-feed");
+  pin_and_name_thread(core, "hft-feed");
   while (running.load(std::memory_order_relaxed)) {
     poll_once();
   }

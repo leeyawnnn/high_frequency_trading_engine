@@ -53,7 +53,7 @@ int main(int argc, char** argv) {
   std::thread feed_thread([&] { fh.run(fh_running, feed_core); });
 
   std::thread drain_thread([&] {
-    hft::pin_current_thread(drain_core);
+    hft::pin_and_name_thread(drain_core, "hft-drain");
     hft::MdEvent ev{};
     std::uint64_t got = 0;
     std::uint64_t idle_start = hft::tsc_now();

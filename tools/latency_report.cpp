@@ -84,7 +84,7 @@ int main(int argc, char** argv) {
   std::atomic<bool> exch_running{true};
   engine->start();
   std::thread exch_thread([&] {
-    hft::pin_current_thread(exch_core);
+    hft::pin_and_name_thread(exch_core, "hft-exch");
     exch.run(exch_running);
   });
 

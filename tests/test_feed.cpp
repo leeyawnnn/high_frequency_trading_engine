@@ -30,10 +30,22 @@ hft::ItchMessage make(std::uint32_t seq) {
 }  // namespace
 
 HFT_TEST(affinity_helpers_are_safe) {
-  // Pinning to an invalid core returns false; naming never crashes. (On macOS
-  // pinning is always a no-op returning false.)
-  CHECK(!hft::pin_current_thread(-1));
-  hft::set_current_thread_name("hft-test");
+  // A negative core is rejected before it can reach CPU_SET. On Linux that is
+  // kInvalidCore; on macOS there is no affinity API at all, so every request
+  // reports kUnsupportedPlatform. Neither is a successful pin.
+  const hft::AffinityResult bad = hft::pin_current_thread(-1);
+  CHECK(!bad);
+  CHECK(bad.status != hft::AffinityStatus::kPinned);
+
+  // A very large core index must be rejected by the range guard rather than
+  // indexing outside the cpu_set_t bit array.
+  CHECK(!hft::pin_current_thread(1 << 20));
+
+  // Naming succeeds, and an over-long name is truncated rather than refused.
+  // Linux answers a name of 16+ bytes with ERANGE and leaves the thread
+  // unnamed; truncating keeps the stage identifiable in a profile.
+  CHECK(hft::set_current_thread_name("hft-test"));
+  CHECK(hft::set_current_thread_name("hft-name-far-longer-than-the-kernel-limit"));
 }
 
 HFT_TEST(feed_handler_single_and_batched) {

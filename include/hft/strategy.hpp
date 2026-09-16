@@ -182,8 +182,7 @@ namespace hft {
 template <std::size_t NumTicks, typename FeedQ, typename OrderQ, typename FillQ>
 void StrategyRunner<NumTicks, FeedQ, OrderQ, FillQ>::run(const std::atomic<bool>& running,
                                                          int core) {
-  pin_current_thread(core);
-  set_current_thread_name("hft-strat");
+  pin_and_name_thread(core, "hft-strat");
   while (running.load(std::memory_order_relaxed)) {
     poll_once();
   }

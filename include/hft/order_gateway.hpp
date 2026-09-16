@@ -153,8 +153,7 @@ namespace hft {
 template <typename OrderQueue, typename FillQueue, std::size_t InFlightCapacity>
 void OrderGateway<OrderQueue, FillQueue, InFlightCapacity>::run(const std::atomic<bool>& running,
                                                                 int core) {
-  pin_current_thread(core);
-  set_current_thread_name("hft-gw");
+  pin_and_name_thread(core, "hft-gw");
   while (running.load(std::memory_order_relaxed)) {
     poll_once();
   }
