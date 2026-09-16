@@ -23,6 +23,13 @@ import sys
 REPO = pathlib.Path(__file__).resolve().parent.parent
 DATA = REPO / "reports" / "data"
 OUT = REPO / "reports" / "tables.md"
+README = REPO / "README.md"
+
+# The README's headline numbers are injected between these markers rather than
+# typed. Transcribing them is how the previous version came to publish "~0 ns"
+# beside a CSV reading 399 ns.
+BEGIN = "<!-- BEGIN GENERATED RESULTS -->"
+END = "<!-- END GENERATED RESULTS -->"
 
 
 def read_csv(name: str) -> list[dict[str, str]]:
@@ -195,6 +202,75 @@ def false_sharing_table() -> str:
     return "\n".join(out)
 
 
+def headline() -> str:
+    """The handful of numbers the README leads with, straight from the CSVs."""
+    summary = {r["stage"]: r for r in read_csv("summary.csv")}
+    comps = {r["component"]: r for r in read_csv("components.csv")}
+    sweep = read_csv("load_sweep.csv")
+    meta = read_meta("summary.csv").get("machine", {})
+
+    lines = ["| measurement | value |", "|---|---|"]
+
+    e2e = summary.get("end_to_end")
+    if e2e:
+        lines.append(f"| end-to-end p50 / p99 / p99.9 | {e2e['p50']} / {e2e['p99']} / "
+                     f"{e2e['p999']} ns |")
+    rt = summary.get("round_trip")
+    if rt:
+        lines.append(f"| order round trip p50 | {rt['p50']} ns |")
+    strat = summary.get("strategy")
+    if strat:
+        lines.append(f"| strategy stage p50 / p99 | {strat['p50']} / {strat['p99']} ns |")
+
+    if sweep:
+        rows = sorted(sweep, key=lambda r: int(r["offered_rate"]))
+        kept = [r for r in rows if int(r["achieved_rate"]) >= int(r["offered_rate"]) * 0.95]
+        if kept:
+            lines.append(f"| keeps up with offered load to | "
+                         f"{int(kept[-1]['offered_rate']):,} msg/s |")
+        peak = max(int(r["achieved_rate"]) for r in rows)
+        lines.append(f"| saturates at | {peak:,} msg/s |")
+
+    for name, label in (("book_apply", "order book update"),
+                        ("strategy_on_md", "strategy decision")):
+        c = comps.get(name)
+        if c:
+            lines.append(f"| `{name}()` ({label}) | {c['ns_per_op']} ns |")
+
+    if summary:
+        first = next(iter(summary.values()))
+        lines.append(f"| clock resolution | {first.get('resolution_ns', '?')} ns "
+                     f"(`{first.get('clock_source', '?')}`) |")
+
+    cpu = meta.get("cpu", "?")
+    cores = meta.get("logical_cores", "?")
+    os_name = meta.get("os", "?")
+    lines += [
+        "",
+        f"Measured on {cpu}, {cores} logical cores, {os_name}, threads unpinned, "
+        "spin wait policy, 4s at 100k msg/s, synthetic data over loopback UDP. "
+        "`<N` means the span finished inside the clock's resolution floor and is "
+        "an upper bound, not zero.",
+        "",
+        "Full generated tables: [reports/tables.md](reports/tables.md). "
+        "Regenerate everything with `scripts/measure.sh`.",
+    ]
+    return "\n".join(lines)
+
+
+def update_readme() -> bool:
+    """Replace the marked block in README.md. Returns False if markers absent."""
+    if not README.exists():
+        return False
+    text = README.read_text()
+    if BEGIN not in text or END not in text:
+        return False
+    head, rest = text.split(BEGIN, 1)
+    _, tail = rest.split(END, 1)
+    README.write_text(f"{head}{BEGIN}\n{headline()}\n{END}{tail}")
+    return True
+
+
 def main() -> int:
     if not DATA.exists():
         print(f"error: {DATA} does not exist; run scripts/measure.sh", file=sys.stderr)
@@ -220,6 +296,11 @@ def main() -> int:
     ]
     OUT.write_text("\n".join(body) + "\n")
     print(f"wrote {OUT.relative_to(REPO)}")
+    if update_readme():
+        print(f"updated {README.relative_to(REPO)} generated block")
+    else:
+        print("note: README.md has no generated-results markers; skipped",
+              file=sys.stderr)
     return 0
 
 

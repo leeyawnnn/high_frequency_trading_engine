@@ -194,8 +194,10 @@ jobs:
       - name: Re-render tables and fail if they drift from the CSVs
         run: |
           python3 tools/render_tables.py
-          git diff --exit-code -- reports/tables.md || {
-            echo "::error::reports/tables.md is stale. Run tools/render_tables.py and commit."
+          git diff --exit-code -- reports/tables.md README.md || {
+            echo "::error::Generated results are stale. Run tools/render_tables.py and commit."
+            echo "::error::The README's headline numbers and reports/tables.md are generated"
+            echo "::error::from reports/data/*.csv and must not be edited by hand."
             exit 1
           }
       - name: Fail if any figure is missing or empty
