@@ -33,6 +33,7 @@ option(HFT_BUILD_TESTS      "Build unit tests"   ON)
 option(HFT_BUILD_BENCHMARKS "Build benchmarks"   ON)
 option(HFT_BUILD_TOOLS      "Build tools (exchange_sim, latency_report)" ON)
 option(HFT_BUILD_APPS       "Build apps (hft_main)" ON)
+option(HFT_BUILD_FUZZERS    "Build libFuzzer targets (Clang only; implies sanitizers)" OFF)
 
 # ---------------------------------------------------------------------------
 # Platform detection
@@ -156,6 +157,10 @@ if(HFT_BUILD_APPS)
   add_subdirectory(apps)
 endif()
 
+if(HFT_BUILD_FUZZERS)
+  add_subdirectory(fuzz)
+endif()
+
 # ---------------------------------------------------------------------------
 # Configuration summary
 # ---------------------------------------------------------------------------
@@ -168,4 +173,5 @@ message(STATUS "  Warnings=errors : ${HFT_WERROR}")
 message(STATUS "  ASan+UBSan      : ${HFT_SANITIZE}")
 message(STATUS "  TSan            : ${HFT_TSAN}")
 message(STATUS "  Linux engine    : ${HFT_LINUX}")
+message(STATUS "  Fuzzers         : ${HFT_BUILD_FUZZERS}")
 message(STATUS "==================================================================")

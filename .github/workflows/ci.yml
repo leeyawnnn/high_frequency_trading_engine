@@ -148,6 +148,35 @@ jobs:
         run: git ls-files '*.hpp' '*.cpp' | xargs clang-format --dry-run --Werror
 
   # ---------------------------------------------------------------------------
+  # libFuzzer. The property tests drive the book with generators I wrote, so
+  # they explore the input space I thought of; this explores the one I did not.
+  # Short runs on every push: enough to catch a regression, not a fuzzing
+  # campaign. Apple's Command Line Tools clang ships no fuzzer runtime, so this
+  # can only run on Linux.
+  # ---------------------------------------------------------------------------
+  fuzz:
+    name: fuzz (smoke)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+      - name: Configure
+        env:
+          CC: clang
+          CXX: clang++
+        run: |
+          cmake -S . -B build-fuzz \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DHFT_BUILD_FUZZERS=ON -DHFT_NATIVE=OFF -DHFT_LTO=OFF \
+            -DHFT_BUILD_TESTS=OFF -DHFT_BUILD_BENCHMARKS=OFF \
+            -DHFT_BUILD_TOOLS=OFF -DHFT_BUILD_APPS=OFF
+      - name: Build
+        run: cmake --build build-fuzz -j "$(getconf _NPROCESSORS_ONLN)"
+      - name: Fuzz the order book
+        run: ./build-fuzz/fuzz/fuzz_book -max_total_time=45 -print_final_stats=1
+      - name: Fuzz the ITCH reader
+        run: ./build-fuzz/fuzz/fuzz_itch -max_total_time=45 -print_final_stats=1
+
+  # ---------------------------------------------------------------------------
   # Figures must regenerate from the committed CSVs. A figure that silently
   # stops rendering is how a README ends up citing a chart nobody can rebuild.
   # ---------------------------------------------------------------------------
