@@ -43,7 +43,13 @@ compile_commands.json
 # Downloaded market data. Nasdaq's sample files are theirs to distribute and a
 # single day is 4.76 GB; scripts/fetch_itch_sample.py fetches a prefix on
 # demand. Nothing under data/ is committed.
-data/
+#
+# Anchored with a leading slash. Unanchored, "data/" matches a directory of
+# that name at ANY depth, which silently swallowed reports/data/ -- the
+# committed measurement artifacts. They stayed in the index because they were
+# already tracked, so nothing broke visibly; a newly generated CSV would just
+# never have been added.
+/data/
 
 # Python bytecode (reports/plot.py)
 __pycache__/
