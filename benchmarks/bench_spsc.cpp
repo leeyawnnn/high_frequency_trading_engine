@@ -38,7 +38,9 @@ int main(int argc, char** argv) {
     std::uint64_t sum = 0;
     while (got < kItems) {
       if (q->pop(it)) {
+        hft::DoNotOptimize(it);
         sum += it.seq;
+        hft::DoNotOptimize(sum);
         ++got;
       }
     }
@@ -52,6 +54,7 @@ int main(int argc, char** argv) {
     Item it{};
     for (std::uint64_t i = 0; i < kItems; ++i) {
       it.seq = i;
+      hft::DoNotOptimize(it);
       while (!q->push(it)) {
       }
     }

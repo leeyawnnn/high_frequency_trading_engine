@@ -57,15 +57,19 @@ int main(int argc, char** argv) {
   }
 
   hft::BookView<N> book(base, tick);
-  volatile std::int64_t sink = 0;
+  std::int64_t sink = 0;
 
   const std::uint64_t t0 = hft::tsc_now_serialized();
   for (const auto& m : stream) {
+    hft::DoNotOptimize(m);
     book.apply(m);
-    sink += book.best_bid_size();  // force top-of-book to stay live
+    // The book is mutated in place, so tell the compiler its memory is
+    // observed; otherwise a apply() whose result is never read is dead.
+    hft::ClobberMemory();
+    sink += book.best_bid_size();
+    hft::DoNotOptimize(sink);
   }
   const std::uint64_t t1 = hft::tsc_now_serialized();
-  (void)sink;
 
   const double ns = hft::tsc_to_ns(t1 - t0);
   const double dn = static_cast<double>(n);

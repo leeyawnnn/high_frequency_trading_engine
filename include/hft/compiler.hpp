@@ -56,4 +56,74 @@ HFT_ALWAYS_INLINE void prefetch_write(const void* p) noexcept {
 #endif
 }
 
+// ---- Optimisation barriers (benchmark use) ---------------------------------
+//
+// A microbenchmark measures what the compiler leaves behind, not what the
+// source says. If a result is never observed, the computation that produced it
+// is dead code and gets deleted, and the loop then measures an empty loop.
+// That is how a binary message parse comes to "cost" 0.48 ns, roughly 1.5
+// cycles, and how a counter read comes to cost less than a single cycle.
+//
+// `volatile` is the usual folk remedy and is the wrong tool: it constrains the
+// variable's storage accesses rather than the surrounding computation, it
+// forces a spill that the real code would not have, and what it forbids is
+// under-specified across compilers. These two barriers are the standard
+// inline-asm forms, the same ones Google Benchmark uses.
+//
+// DoNotOptimize(x) tells the compiler that x is observed by something outside
+// its analysis, so whatever computed x must survive.
+// ClobberMemory() tells it that all of memory may have been read or written,
+// so pending stores must be materialised before the barrier.
+
+#if defined(__GNUC__) || defined(__clang__)
+
+template <typename T>
+HFT_ALWAYS_INLINE void DoNotOptimize(const T& value) noexcept {
+  asm volatile("" : : "r,m"(value) : "memory");
+}
+
+template <typename T>
+HFT_ALWAYS_INLINE void DoNotOptimize(T& value) noexcept {
+#if defined(__clang__)
+  asm volatile("" : "+r,m"(value) : : "memory");
+#else
+  asm volatile("" : "+m,r"(value) : : "memory");
+#endif
+}
+
+HFT_ALWAYS_INLINE void ClobberMemory() noexcept {
+  asm volatile("" : : : "memory");
+}
+
+#elif defined(_MSC_VER)
+
+// MSVC has no inline asm on x64. _ReadWriteBarrier is a compiler-level barrier
+// only, which is what is wanted here, but it is deprecated and weaker than the
+// asm forms: treat MSVC benchmark numbers as indicative rather than
+// authoritative.
+extern "C" void _ReadWriteBarrier();
+#pragma intrinsic(_ReadWriteBarrier)
+
+template <typename T>
+HFT_ALWAYS_INLINE void DoNotOptimize(const T& value) noexcept {
+  volatile const T* sink = &value;
+  (void)sink;
+  _ReadWriteBarrier();
+}
+
+template <typename T>
+HFT_ALWAYS_INLINE void DoNotOptimize(T& value) noexcept {
+  volatile T* sink = &value;
+  (void)sink;
+  _ReadWriteBarrier();
+}
+
+HFT_ALWAYS_INLINE void ClobberMemory() noexcept {
+  _ReadWriteBarrier();
+}
+
+#else
+#error "hft/compiler.hpp: no optimisation barrier available for this compiler"
+#endif
+
 }  // namespace hft

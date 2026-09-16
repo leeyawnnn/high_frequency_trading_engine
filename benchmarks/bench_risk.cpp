@@ -54,13 +54,15 @@ int main(int argc, char** argv) {
     orders[static_cast<std::size_t>(s)].size = 1;
   }
 
-  volatile std::uint64_t sink = 0;
+  std::uint64_t sink = 0;
   const std::uint64_t t0 = hft::tsc_now_serialized();
   for (long i = 0; i < n; ++i) {
-    sink += static_cast<std::uint64_t>(g.check(orders[static_cast<std::size_t>(i & 1)]));
+    const hft::OrderRequest& o = orders[static_cast<std::size_t>(i & 1)];
+    hft::DoNotOptimize(o);
+    sink += static_cast<std::uint64_t>(g.check(o));
+    hft::DoNotOptimize(sink);
   }
   const std::uint64_t t1 = hft::tsc_now_serialized();
-  (void)sink;
 
   const double ns = hft::tsc_to_ns(t1 - t0);
   std::printf("risk gate check() [all checks, accept path]\n");
