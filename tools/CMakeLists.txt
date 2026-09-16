@@ -1,6 +1,6 @@
 # Standalone tools.
-#   exchange_sim     - simulated exchange process (Phase 4). Linux-only (UDP).
-#   latency_report   - offline histogram aggregation / pretty-printer (Phase 1+).
+#   exchange_sim     - simulated exchange process. Linux-only (UDP).
+#   latency_report   - in-process engine + exchange run, writes the report CSVs.
 #
 # exchange_sim depends on networking primitives that only exist on Linux, so it
 # is only built there. latency_report is platform-independent.

@@ -1,4 +1,4 @@
-// Phase 8: pre-trade risk gate.
+// Pre-trade risk gate.
 #include "hft/itch_message.hpp"
 #include "hft/order_msg.hpp"
 #include "hft/risk_gate.hpp"

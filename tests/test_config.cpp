@@ -1,4 +1,4 @@
-// Phase 5: JSON config loader.
+// JSON config loader.
 #include "hft/config.hpp"
 #include "test_harness.hpp"
 

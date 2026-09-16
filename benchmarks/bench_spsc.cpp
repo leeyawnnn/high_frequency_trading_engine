@@ -1,4 +1,4 @@
-// Phase 2 benchmark: SPSC ring buffer throughput.
+// Benchmark: SPSC ring buffer throughput.
 //
 // Producer and consumer run on separate threads, each pinned where the
 // platform allows. We push/pop a large number of fixed-size items and report
@@ -13,7 +13,7 @@
 
 namespace {
 
-// A representative payload: 32 bytes, the size of our ITCH message (Phase 3).
+// A representative payload: 32 bytes, the size of the internal market-data frame.
 struct Item {
   std::uint64_t seq;
   std::uint64_t a, b, c;

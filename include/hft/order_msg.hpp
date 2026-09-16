@@ -4,7 +4,7 @@
 // fields ordered widest-first so they stay naturally aligned (fixed 40 bytes).
 //
 // The `md_timestamp` field is the spine of the end-to-end latency measurement
-// (Phase 10): the feed handler stamps each market-data message with its arrival
+// the feed handler stamps each market-data message with its arrival
 // TSC, the strategy copies that stamp into the OrderRequest it emits, and the
 // exchange echoes it back in the ExecReport. Subtracting it from "now" at any
 // downstream point gives the in-process latency from data arrival to that point.

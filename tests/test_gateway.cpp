@@ -1,4 +1,4 @@
-// Phase 9: order gateway (order queue -> risk -> wire, + fill intake).
+// Order gateway (order queue -> risk -> wire, + fill intake).
 #include "hft/itch_message.hpp"
 #include "hft/net.hpp"
 #include "hft/order_gateway.hpp"

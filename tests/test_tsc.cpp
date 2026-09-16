@@ -1,4 +1,4 @@
-// Phase 1: TSC timestamping + calibration.
+// TSC timestamping + calibration.
 #include "hft/tsc.hpp"
 #include "test_harness.hpp"
 

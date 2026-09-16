@@ -1,4 +1,4 @@
-// Phase 5 benchmark: feed-handler throughput + recv->enqueue latency.
+// Benchmark: feed-handler throughput + recv->enqueue latency.
 //
 // Pipeline under test (all real, over loopback UDP):
 //   sender thread  --batched datagrams-->  FeedHandler thread  --SPSC-->  drain

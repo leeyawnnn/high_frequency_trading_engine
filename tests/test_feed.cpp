@@ -1,4 +1,4 @@
-// Phase 5: feed-handler stage (socket -> parse -> tag -> SPSC).
+// Feed-handler stage (socket -> parse -> tag -> SPSC).
 #include "hft/affinity.hpp"
 #include "hft/feed_handler.hpp"
 #include "hft/itch_message.hpp"

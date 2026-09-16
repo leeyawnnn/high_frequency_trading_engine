@@ -1,4 +1,4 @@
-// Phase 8 benchmark: risk-gate added latency. Target < 100 ns.
+// Benchmark: risk-gate added latency.
 //
 // We measure the all-checks-pass path (the common case) since that is the
 // latency the gate adds to every order that actually goes out. The position

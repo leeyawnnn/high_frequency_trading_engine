@@ -1,4 +1,4 @@
-// Phase 0 smoke test: proves the toolchain is wired up correctly.
+// Smoke test: proves the toolchain is wired up correctly.
 //   - C++20 is actually in effect.
 //   - The hft include path resolves.
 //   - Optimization/define plumbing reaches translation units.

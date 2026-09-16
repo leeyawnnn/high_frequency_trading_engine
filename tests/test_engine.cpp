@@ -1,4 +1,4 @@
-// Phase 10: full-engine integration. Runs the wired Engine and a SimExchange
+// Full-engine integration. Runs the wired Engine and a SimExchange
 // in-process over loopback and checks that the whole pipeline carries data end
 // to end — orders flow, fills come back, and the e2e latency histogram fills.
 #include "hft/engine.hpp"

@@ -1,4 +1,4 @@
-// Phase 6: HFT-shaped flat-array order book, verified against a slow std::map
+// HFT-shaped flat-array order book, verified against a slow std::map
 // reference implementation.
 #include "hft/book_view.hpp"
 #include "hft/itch_message.hpp"

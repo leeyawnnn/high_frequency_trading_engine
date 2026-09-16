@@ -5,7 +5,7 @@
 // arrival TSC once, then parses every message in the datagram (datagrams may
 // carry a batch, which is how we amortize the recv syscall) and pushes a tagged
 // event onto the outbound queue. The arrival stamp rides along the whole
-// pipeline and anchors the end-to-end latency measurement (Phase 10).
+// pipeline and anchors the end-to-end latency measurement.
 //
 // It records, per message, the time from datagram arrival to enqueue completion
 // — the latency this stage adds before the strategy can see the data.

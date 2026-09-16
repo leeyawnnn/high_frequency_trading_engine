@@ -1,4 +1,4 @@
-// Phase 6 benchmark: flat-array order book update cost.
+// Benchmark: flat-array order book update cost.
 #include "hft/book_view.hpp"
 #include "hft/itch_message.hpp"
 #include "hft/tsc.hpp"

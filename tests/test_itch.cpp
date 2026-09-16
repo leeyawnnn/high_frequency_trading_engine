@@ -1,4 +1,5 @@
-// Phase 3: ITCH-style binary feed + zero-copy parser.
+// Internal binary feed frame + zero-copy parser.
+// (The real Nasdaq ITCH 5.0 decoder is covered by test_itch50.cpp.)
 #include "hft/itch_message.hpp"
 #include "hft/itch_parser.hpp"
 #include "test_harness.hpp"

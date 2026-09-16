@@ -236,7 +236,7 @@ class Config {
               break;
             default:
               out.push_back(e);
-              break;  // includes \uXXXX passthrough-ish
+              break;  // JSON \u escapes pass through unchanged
           }
         } else {
           out.push_back(c);

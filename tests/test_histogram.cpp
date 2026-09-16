@@ -1,4 +1,4 @@
-// Phase 1: latency histogram. Records 1M samples and verifies percentiles
+// Latency histogram. Records 1M samples and verifies percentiles
 // against an exact sorted reference, plus exactness on the linear low range.
 #include "hft/histogram.hpp"
 #include "test_harness.hpp"

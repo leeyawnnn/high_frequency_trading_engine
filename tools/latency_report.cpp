@@ -68,13 +68,14 @@ int main(int argc, char** argv) {
   ecfg.fill_port = 0;
   ecfg.feed_bind = "127.0.0.1";
   ecfg.fill_bind = "127.0.0.1";
-  ecfg.order_dst = hft::Endpoint::v4("127.0.0.1", 1);  // placeholder, set below
+  ecfg.order_dst = hft::Endpoint::v4("127.0.0.1", 1);  // rewritten below, once the
+                                                       // exchange has bound a port
   auto engine = std::make_unique<hft::Engine<>>(ecfg);
 
   // 2. Build the exchange on an ephemeral order port.
   hft::SimExchange::Config xcfg{
-      hft::Endpoint::v4("127.0.0.1", 1),  // feed_dst placeholder
-      hft::Endpoint::v4("127.0.0.1", 1),  // fill_dst placeholder
+      hft::Endpoint::v4("127.0.0.1", 1),  // feed_dst: rewritten below
+      hft::Endpoint::v4("127.0.0.1", 1),  // fill_dst: rewritten below
       0,                                  // order bind ephemeral
       hft::pack_symbol("TST"),
       rate,

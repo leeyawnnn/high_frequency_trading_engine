@@ -1,4 +1,4 @@
-// Phase 7: book-imbalance strategy.
+// Book-imbalance strategy.
 #include "hft/feed_handler.hpp"
 #include "hft/itch_message.hpp"
 #include "hft/order_msg.hpp"
