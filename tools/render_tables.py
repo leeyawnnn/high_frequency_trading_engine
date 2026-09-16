@@ -16,7 +16,6 @@ Usage:  python3 tools/render_tables.py
 from __future__ import annotations
 
 import csv
-import datetime as _dt
 import json
 import pathlib
 import sys
@@ -201,11 +200,14 @@ def main() -> int:
         print(f"error: {DATA} does not exist; run scripts/measure.sh", file=sys.stderr)
         return 1
 
-    stamp = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    # Deliberately no render timestamp. This file is checked into git and CI
+    # re-renders it to prove it has not drifted from the CSVs; a wall-clock
+    # stamp would make that check fail on every run and teach everyone to
+    # ignore it. The real timestamps live in the per-artifact provenance
+    # blocks below, which change only when the data does.
     body = [
         "<!-- GENERATED FILE - DO NOT EDIT BY HAND.",
         "     Produced by tools/render_tables.py from reports/data/*.csv.",
-        f"     Last rendered {stamp}.",
         "     Edit the measurement, not this file. -->",
         "",
         "## Results",

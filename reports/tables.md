@@ -1,6 +1,5 @@
 <!-- GENERATED FILE - DO NOT EDIT BY HAND.
      Produced by tools/render_tables.py from reports/data/*.csv.
-     Last rendered 2026-09-16T05:17:43Z.
      Edit the measurement, not this file. -->
 
 ## Results
