@@ -30,6 +30,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 
 #include "hft/compiler.hpp"
 #include "hft/itch_message.hpp"
@@ -42,6 +43,10 @@ class BookView {
 
  public:
   // base_price = fixed-point price at index 0; tick = fixed-point tick size.
+  // Largest size a single price level can hold. Accumulation saturates here
+  // rather than wrapping; see the kAdd case in apply().
+  static constexpr std::uint32_t kMaxLevelSize = std::numeric_limits<std::uint32_t>::max();
+
   BookView(std::int64_t base_price, std::int64_t tick) noexcept : base_(base_price), tick_(tick) {}
 
   // Apply one market-data message. O(1) except when the touched best level is
@@ -65,7 +70,15 @@ class BookView {
         // reports 0, and imbalance() returns a number computed from a level
         // that does not exist.
         if (HFT_UNLIKELY(m.size == 0)) break;
-        arr[idx] += m.size;
+        // Saturate rather than wrap. `arr[idx] += m.size` on a uint32 silently
+        // wraps: two adds summing to exactly 2^32 leave the level at 0 while
+        // it is still the best, so has_bid() is true and best_bid_size() is 0
+        // -- the same corrupt state as a zero-size add, by another route. A
+        // non-wrapping sum that exceeds the field reports a level SMALLER than
+        // either add, which is worse than reporting a clamped one. Found by
+        // the libFuzzer target; real ITCH share counts never approach this,
+        // which is precisely why it would not have been found by reading.
+        arr[idx] = (arr[idx] > kMaxLevelSize - m.size) ? kMaxLevelSize : arr[idx] + m.size;
         on_size_increased(is_bid, idx);
         break;
       case MsgType::kExecute:

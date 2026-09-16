@@ -313,6 +313,46 @@ HFT_TEST(zero_size_add_must_not_become_top_of_book) {
   check_invariants(b, 0);
 }
 
+HFT_TEST(level_size_saturates_instead_of_wrapping) {
+  // Regression: `arr[idx] += m.size` on a uint32 wrapped silently. Two adds
+  // summing to exactly 2^32 left the level at 0 while it was still the best,
+  // producing has_bid() == true with best_bid_size() == 0 -- the same corrupt
+  // state as the zero-size add, reached a different way. A sum that merely
+  // exceeded the field reported a level smaller than either add.
+  //
+  // Found by the libFuzzer target, not by this file's generators: real share
+  // counts never approach 2^32, so no realistic stream reaches it.
+  const std::int64_t base = hft::price_from_double(90.00);
+  const std::int64_t tick = hft::kPriceScale / 100;
+  const std::int64_t px = base + 100 * tick;
+  constexpr std::uint32_t kMax = std::numeric_limits<std::uint32_t>::max();
+
+  {  // exact wrap to zero
+    hft::BookView<4096> b(base, tick);
+    b.apply(mk(hft::MsgType::kAdd, hft::Side::kBuy, px, kMax));
+    b.apply(mk(hft::MsgType::kAdd, hft::Side::kBuy, px, 1u));
+    CHECK(b.has_bid());
+    CHECK_EQ(b.best_bid_size(), kMax);  // saturated, not 0
+    check_invariants(b, 0);
+  }
+  {  // overflow that would have reported a smaller level
+    hft::BookView<4096> b(base, tick);
+    b.apply(mk(hft::MsgType::kAdd, hft::Side::kSell, px, 3'000'000'000u));
+    b.apply(mk(hft::MsgType::kAdd, hft::Side::kSell, px, 2'000'000'000u));
+    CHECK(b.has_ask());
+    CHECK_EQ(b.best_ask_size(), kMax);
+    check_invariants(b, 0);
+  }
+  {  // saturation is still reducible back to empty
+    hft::BookView<4096> b(base, tick);
+    b.apply(mk(hft::MsgType::kAdd, hft::Side::kBuy, px, kMax));
+    b.apply(mk(hft::MsgType::kAdd, hft::Side::kBuy, px, 1000u));
+    b.apply(mk(hft::MsgType::kDelete, hft::Side::kBuy, px, 0u));
+    CHECK(!b.has_bid());
+    check_invariants(b, 0);
+  }
+}
+
 HFT_TEST(out_of_window_prices_never_corrupt_the_book) {
   // Prices outside the window must be counted and dropped, never folded back
   // into a valid index. Walk far past both edges, including values that would
