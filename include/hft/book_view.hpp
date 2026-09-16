@@ -57,6 +57,14 @@ class BookView {
 
     switch (static_cast<MsgType>(m.type)) {
       case MsgType::kAdd:
+        // A zero-size add is a no-op, and it must not reach
+        // on_size_increased. That function promotes idx to best-of-book
+        // whenever it is better than the current best, without consulting the
+        // size, so a zero-size add at a better price installs an EMPTY level
+        // as the top of book: has_bid() then reports true, best_bid_size()
+        // reports 0, and imbalance() returns a number computed from a level
+        // that does not exist.
+        if (HFT_UNLIKELY(m.size == 0)) break;
         arr[idx] += m.size;
         on_size_increased(is_bid, idx);
         break;
