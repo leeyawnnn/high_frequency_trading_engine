@@ -3,6 +3,7 @@
 // Producer and consumer run on separate threads, each pinned where the
 // platform allows. We push/pop a large number of fixed-size items and report
 // sustained ops/sec plus ns/op. Target: >= 100M ops/sec on a modern desktop.
+#include "hft/affinity.hpp"
 #include "hft/spsc_queue.hpp"
 #include "hft/tsc.hpp"
 
@@ -10,21 +11,7 @@
 #include <cstdio>
 #include <thread>
 
-#if defined(__linux__)
-#include <pthread.h>
-#include <sched.h>
-#endif
-
 namespace {
-
-void pin_to_core([[maybe_unused]] int core) {
-#if defined(__linux__)
-  cpu_set_t set;
-  CPU_ZERO(&set);
-  CPU_SET(core, &set);
-  pthread_setaffinity_np(pthread_self(), sizeof(set), &set);
-#endif
-}
 
 // A representative payload: 32 bytes, the size of our ITCH message (Phase 3).
 struct Item {
@@ -45,7 +32,7 @@ int main(int argc, char** argv) {
   std::uint64_t checksum = 0;
 
   std::thread consumer([&] {
-    pin_to_core(3);
+    hft::pin_and_name_thread(3, "bench-cons");
     Item it{};
     std::uint64_t got = 0;
     std::uint64_t sum = 0;
@@ -61,7 +48,7 @@ int main(int argc, char** argv) {
   const std::uint64_t t0 = hft::tsc_now_serialized();
 
   std::thread producer([&] {
-    pin_to_core(1);
+    hft::pin_and_name_thread(1, "bench-prod");
     Item it{};
     for (std::uint64_t i = 0; i < kItems; ++i) {
       it.seq = i;

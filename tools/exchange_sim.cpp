@@ -5,6 +5,7 @@
 //   exchange_sim [--feed-host H] [--feed-port P] [--order-port P]
 //                [--fill-host H] [--fill-port P] [--symbol S]
 //                [--rate MSGS_PER_SEC] [--batch N] [--duration-ms MS] [--cpu CORE]
+#include "hft/affinity.hpp"
 #include "hft/itch_message.hpp"
 #include "hft/net.hpp"
 #include "hft/sim_exchange.hpp"
@@ -17,25 +18,10 @@
 #include <cstring>
 #include <thread>
 
-#if defined(__linux__)
-#include <pthread.h>
-#include <sched.h>
-#endif
-
 namespace {
 std::atomic<bool> g_running{true};
 void on_signal(int) {
   g_running.store(false);
-}
-
-void pin_cpu([[maybe_unused]] int core) {
-#if defined(__linux__)
-  if (core < 0) return;
-  cpu_set_t set;
-  CPU_ZERO(&set);
-  CPU_SET(core, &set);
-  pthread_setaffinity_np(pthread_self(), sizeof(set), &set);
-#endif
 }
 
 const char* arg_str(int argc, char** argv, const char* key, const char* def) {
@@ -63,7 +49,7 @@ int main(int argc, char** argv) {
 
   std::signal(SIGINT, on_signal);
   std::signal(SIGTERM, on_signal);
-  pin_cpu(cpu);
+  if (cpu >= 0) hft::pin_and_name_thread(cpu, "hft-exchsim");
   hft::tsc_calibrate();
 
   hft::SimExchange::Config cfg{
