@@ -1,0 +1,20 @@
+# Normalise line endings so a checkout on Windows does not rewrite the tree.
+* text=auto eol=lf
+
+# Language statistics on the repository page.
+#
+# Without this, GitHub counts the generated SVG figures and the Python
+# reporting scripts alongside the C++ and reports the primary language wrong.
+# The figures are generated output, not authored source.
+reports/figures/*.svg linguist-generated=true
+reports/tables.md     linguist-generated=true
+reports/data/*        linguist-generated=true
+
+# Reporting and tooling are support scripts, not the subject of the repository.
+reports/*.py  linguist-vendored=true
+tools/*.py    linguist-vendored=true
+scripts/*.sh  linguist-vendored=true
+
+# Treat the committed CSVs as text so diffs are readable.
+*.csv  text
+*.json text

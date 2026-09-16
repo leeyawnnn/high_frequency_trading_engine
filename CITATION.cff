@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+title: hft-engine
+message: >-
+  If you refer to this work, please cite it using the metadata below.
+type: software
+authors:
+  - alias: leeyawnnn
+repository-code: "https://github.com/leeyawnnn/high_frequency_trading_engine"
+abstract: >-
+  A low-latency C++20 market-data-to-order pipeline: a UDP feed handler, a
+  flat-array limit order book, a top-of-book imbalance strategy and a
+  pre-trade risk gate, connected by lock-free single-producer/single-consumer
+  queues and instrumented end to end with the platform cycle counter. Includes
+  a decoder for Nasdaq TotalView-ITCH 5.0, a reproducible measurement pipeline
+  that records clock resolution and machine provenance with every result, and
+  differential, property-based and fuzz testing of the order book.
+keywords:
+  - cpp20
+  - low-latency
+  - high-frequency-trading
+  - market-data
+  - itch
+  - lock-free
+  - performance-benchmarking
+license: Apache-2.0
