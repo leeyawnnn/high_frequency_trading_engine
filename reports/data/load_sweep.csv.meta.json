@@ -1,0 +1,12 @@
+{
+  "artifact": "reports/data/load_sweep.csv",
+  "command": "python3 tools/load_sweep.py /Users/lyonnlie/Documents/Programming_shi/high_frequency_trading_engine/build",
+  "git_commit": "cf068634d0e91f295b1ef5f3d864ac368fb86edc (working tree dirty)",
+  "generated_utc": "2026-09-16T05:22:18Z",
+  "machine": {
+    "cpu": "Apple M4",
+    "logical_cores": 10,
+    "os": "Darwin 25.6.0 (arm64)"
+  },
+  "note": "Synthetic market data over loopback UDP. Offered rate is what the sender attempted; achieved rate is what the engine processed."
+}
