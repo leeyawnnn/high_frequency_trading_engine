@@ -24,7 +24,9 @@
 #include <array>
 #include <chrono>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
+#include <cstdio>
 
 #if defined(__x86_64__) || defined(_M_X64) || defined(__i386__)
 #include <x86intrin.h>
@@ -83,11 +85,55 @@ HFT_ALWAYS_INLINE std::uint64_t tsc_now_serialized() noexcept {
 // Calibration.
 // ---------------------------------------------------------------------------
 
+// Which hardware counter the measurements actually came from. This travels
+// into every output artifact: a latency table means nothing without it,
+// because the floor of what can be measured is a property of the counter and
+// not of the code being measured.
+enum class ClockSource : std::uint8_t {
+  kX86InvariantTsc,     // rdtsc / rdtscp
+  kArmCntvct,           // cntvct_el0, ticking at cntfrq_el0
+  kSteadyClockFallback  // neither; std::chrono, and far coarser
+};
+
+[[nodiscard]] inline const char* to_string(ClockSource s) noexcept {
+  switch (s) {
+    case ClockSource::kX86InvariantTsc:
+      return "x86-invariant-tsc";
+    case ClockSource::kArmCntvct:
+      return "arm-cntvct-el0";
+    case ClockSource::kSteadyClockFallback:
+      return "steady-clock-fallback";
+  }
+  return "unknown";
+}
+
 struct TscCalibration {
   double ns_per_cycle = 1.0;   // multiply a cycle-delta by this to get ns
   double cycles_per_ns = 1.0;  // inverse
-  std::uint64_t hz = 0;        // estimated counter frequency
+  std::uint64_t hz = 0;        // measured counter frequency
+  // Frequency the hardware declares for itself, where it declares one at all
+  // (AArch64 cntfrq_el0). 0 when unavailable. Cross-checking the measured
+  // frequency against this is how a bad calibration gets caught.
+  std::uint64_t nominal_hz = 0;
+  // Period of a single counter tick. This is the resolution floor: no
+  // measurement can be finer, and any reported value below a couple of ticks
+  // is quantisation, not signal.
+  double resolution_ns = 1.0;
+  ClockSource source = ClockSource::kSteadyClockFallback;
 };
+
+// Read the counter frequency the hardware advertises, or 0 if it advertises
+// none. AArch64 exposes cntfrq_el0; x86 has no architectural equivalent, so
+// the measured calibration is the only source there.
+[[nodiscard]] inline std::uint64_t hardware_counter_hz() noexcept {
+#if defined(__aarch64__)
+  std::uint64_t v = 0;
+  asm volatile("mrs %0, cntfrq_el0" : "=r"(v));
+  return v;
+#else
+  return 0;
+#endif
+}
 
 namespace detail {
 
@@ -125,6 +171,21 @@ inline TscCalibration calibrate_tsc() {
   cal.ns_per_cycle = median;
   cal.cycles_per_ns = (median > 0.0) ? (1.0 / median) : 1.0;
   cal.hz = static_cast<std::uint64_t>((median > 0.0) ? (1e9 / median) : 0.0);
+  cal.nominal_hz = hardware_counter_hz();
+
+#if HFT_TSC_X86
+  cal.source = ClockSource::kX86InvariantTsc;
+#elif defined(__aarch64__)
+  cal.source = ClockSource::kArmCntvct;
+#else
+  cal.source = ClockSource::kSteadyClockFallback;
+#endif
+
+  // Prefer the hardware's own figure for the tick period when it publishes
+  // one: it is exact, where the measured value carries the scheduling noise of
+  // the calibration window. They should agree closely, and a large discrepancy
+  // means the calibration is not to be trusted.
+  cal.resolution_ns = (cal.nominal_hz > 0) ? (1e9 / static_cast<double>(cal.nominal_hz)) : median;
   return cal;
 }
 
@@ -154,6 +215,62 @@ HFT_ALWAYS_INLINE double tsc_to_ns(std::uint64_t cycles) noexcept {
 // Same, rounded to whole nanoseconds (what the histogram consumes).
 HFT_ALWAYS_INLINE std::uint64_t tsc_to_ns_u(std::uint64_t cycles) noexcept {
   return static_cast<std::uint64_t>(std::llround(tsc_to_ns(cycles)));
+}
+
+// ---------------------------------------------------------------------------
+// Resolution honesty.
+//
+// A counter that ticks every 41.67 ns cannot measure a 20 ns span. It reports
+// 0 or 1 tick, and averaging many such samples still yields a multiple of the
+// tick period. Printing "p50 = 0 ns" from such a counter states that an
+// operation took no time, when what was actually observed is that it finished
+// inside one tick. These helpers make that distinction explicit rather than
+// leaving it for the reader to infer.
+// ---------------------------------------------------------------------------
+
+// Below this many tick periods, a figure is quantisation rather than signal.
+// Two ticks is the smallest span for which a non-zero reading is unambiguous.
+inline constexpr double kResolutionFloorTicks = 2.0;
+
+[[nodiscard]] inline double resolution_floor_ns() noexcept {
+  return kResolutionFloorTicks * tsc_calibration().resolution_ns;
+}
+
+[[nodiscard]] inline bool below_resolution(std::uint64_t ns) noexcept {
+  return static_cast<double>(ns) < resolution_floor_ns();
+}
+
+// Render a nanosecond figure for a report or a CSV cell. Values the clock
+// cannot resolve render as "<R" (R being the floor) instead of as a number
+// that would be read as a measurement.
+inline void format_ns(char* buf, std::size_t cap, std::uint64_t ns) noexcept {
+  if (below_resolution(ns)) {
+    std::snprintf(buf, cap, "<%.0f", resolution_floor_ns());
+  } else {
+    std::snprintf(buf, cap, "%llu", static_cast<unsigned long long>(ns));
+  }
+}
+
+// Startup self-check. Prints what the measurement is actually standing on, so
+// that a report carries its own caveats instead of relying on the reader to
+// know the platform. Written to the report header and mirrored into the CSVs.
+inline void print_clock_report(std::FILE* out) {
+  const TscCalibration& c = tsc_calibration();
+  std::fprintf(out, "clock source      : %s\n", to_string(c.source));
+  std::fprintf(out, "measured frequency: %.6f MHz\n", static_cast<double>(c.hz) / 1e6);
+  if (c.nominal_hz > 0) {
+    const double nominal_mhz = static_cast<double>(c.nominal_hz) / 1e6;
+    const double drift_pct = 100.0 *
+                             (static_cast<double>(c.hz) - static_cast<double>(c.nominal_hz)) /
+                             static_cast<double>(c.nominal_hz);
+    std::fprintf(out, "nominal frequency : %.6f MHz (hardware cntfrq_el0)\n", nominal_mhz);
+    std::fprintf(out, "calibration drift : %+.3f%%\n", drift_pct);
+  } else {
+    std::fprintf(out, "nominal frequency : not advertised by this architecture\n");
+  }
+  std::fprintf(out, "tick period       : %.3f ns\n", c.resolution_ns);
+  std::fprintf(out, "reporting floor   : %.0f ns (%.0f ticks; finer values print as \"<floor\")\n",
+               resolution_floor_ns(), kResolutionFloorTicks);
 }
 
 }  // namespace hft

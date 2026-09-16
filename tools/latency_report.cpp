@@ -115,7 +115,7 @@ int main(int argc, char** argv) {
     hft::dump_histogram_csv(d + "/e2e.csv", engine->e2e_latency());
     hft::dump_histogram_csv(d + "/round_trip.csv", engine->round_trip_latency());
     if (std::FILE* f = std::fopen((d + "/summary.csv").c_str(), "w")) {
-      std::fprintf(f, "stage,n,p50,p90,p99,p999,max,mean\n");
+      std::fprintf(f, "%s", hft::summary_csv_header());
       hft::write_summary_row(f, "feed", engine->feed_latency());
       hft::write_summary_row(f, "strategy", engine->strategy_latency());
       hft::write_summary_row(f, "gateway", engine->gateway_latency());
