@@ -147,15 +147,21 @@ class OrderGateway {
 }  // namespace hft
 
 #include "hft/affinity.hpp"
+#include "hft/wait_policy.hpp"
 
 namespace hft {
 
 template <typename OrderQueue, typename FillQueue, std::size_t InFlightCapacity>
 void OrderGateway<OrderQueue, FillQueue, InFlightCapacity>::run(const std::atomic<bool>& running,
                                                                 int core) {
-  pin_and_name_thread(core, "hft-gw");
+  const AffinityResult pin = pin_and_name_thread(core, "hft-gw");
+  WaitStrategy wait(pin.ok());
   while (running.load(std::memory_order_relaxed)) {
-    poll_once();
+    if (poll_once()) {
+      wait.reset();
+    } else {
+      wait.idle();
+    }
   }
 }
 

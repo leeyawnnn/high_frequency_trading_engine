@@ -101,14 +101,20 @@ class FeedHandler {
 }  // namespace hft
 
 #include "hft/affinity.hpp"
+#include "hft/wait_policy.hpp"
 
 namespace hft {
 
 template <typename OutQueue>
 void FeedHandler<OutQueue>::run(const std::atomic<bool>& running, int core) {
-  pin_and_name_thread(core, "hft-feed");
+  const AffinityResult pin = pin_and_name_thread(core, "hft-feed");
+  WaitStrategy wait(pin.ok());
   while (running.load(std::memory_order_relaxed)) {
-    poll_once();
+    if (poll_once() > 0) {
+      wait.reset();
+    } else {
+      wait.idle();
+    }
   }
 }
 

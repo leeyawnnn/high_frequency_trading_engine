@@ -176,15 +176,21 @@ class StrategyRunner {
 }  // namespace hft
 
 #include "hft/affinity.hpp"
+#include "hft/wait_policy.hpp"
 
 namespace hft {
 
 template <std::size_t NumTicks, typename FeedQ, typename OrderQ, typename FillQ>
 void StrategyRunner<NumTicks, FeedQ, OrderQ, FillQ>::run(const std::atomic<bool>& running,
                                                          int core) {
-  pin_and_name_thread(core, "hft-strat");
+  const AffinityResult pin = pin_and_name_thread(core, "hft-strat");
+  WaitStrategy wait(pin.ok());
   while (running.load(std::memory_order_relaxed)) {
-    poll_once();
+    if (poll_once()) {
+      wait.reset();
+    } else {
+      wait.idle();
+    }
   }
 }
 
