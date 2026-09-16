@@ -16,7 +16,8 @@ namespace {
 // off-by-one in rank selection.
 std::uint64_t reference_percentile(const std::vector<std::uint64_t>& sorted, double p) {
   const std::uint64_t n = sorted.size();
-  std::uint64_t want = static_cast<std::uint64_t>((p / 100.0) * static_cast<double>(n) + 0.5);
+  std::uint64_t want =
+      static_cast<std::uint64_t>(std::llround((p / 100.0) * static_cast<double>(n)));
   if (want == 0) want = 1;
   if (want > n) want = n;
   return sorted[want - 1];

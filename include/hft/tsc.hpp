@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <array>
 #include <chrono>
+#include <cmath>
 #include <cstdint>
 
 #if defined(__x86_64__) || defined(_M_X64) || defined(__i386__)
@@ -152,7 +153,7 @@ HFT_ALWAYS_INLINE double tsc_to_ns(std::uint64_t cycles) noexcept {
 
 // Same, rounded to whole nanoseconds (what the histogram consumes).
 HFT_ALWAYS_INLINE std::uint64_t tsc_to_ns_u(std::uint64_t cycles) noexcept {
-  return static_cast<std::uint64_t>(tsc_to_ns(cycles) + 0.5);
+  return static_cast<std::uint64_t>(std::llround(tsc_to_ns(cycles)));
 }
 
 }  // namespace hft

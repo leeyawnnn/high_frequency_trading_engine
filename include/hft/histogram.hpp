@@ -14,6 +14,7 @@
 #pragma once
 
 #include <array>
+#include <cmath>
 #include <cstdint>
 #include <limits>
 
@@ -91,7 +92,7 @@ class Histogram {
     if (p > 100.0) p = 100.0;
     // Rank of the requested percentile (1-based count threshold).
     const std::uint64_t target =
-        static_cast<std::uint64_t>((p / 100.0) * static_cast<double>(total_count_) + 0.5);
+        static_cast<std::uint64_t>(std::llround((p / 100.0) * static_cast<double>(total_count_)));
     const std::uint64_t want = target == 0 ? 1 : target;
 
     std::uint64_t cumulative = 0;

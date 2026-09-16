@@ -18,6 +18,7 @@
 #pragma once
 
 #include <atomic>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 
@@ -47,7 +48,7 @@ class ImbalanceStrategy {
   explicit ImbalanceStrategy(const StrategyParams& p) noexcept
       : book_(p.base_price, p.tick),
         order_size_(p.order_size),
-        thr_num_(static_cast<std::int64_t>(p.threshold * static_cast<double>(kThrDen) + 0.5)) {}
+        thr_num_(std::llround(p.threshold * static_cast<double>(kThrDen))) {}
 
   // Process one market-data event. `emit` is invoked at most once, with the
   // OrderRequest to send. Allocation-free; integer-only decision.
