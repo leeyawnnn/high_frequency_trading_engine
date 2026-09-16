@@ -20,9 +20,9 @@
 #include "hft/itch_message.hpp"
 #include "hft/itch_parser.hpp"
 
-#include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
 
 namespace {
 
