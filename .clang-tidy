@@ -1,0 +1,59 @@
+# Lint configuration for hft_engine.
+#
+# This enables the bug-finding families and leaves the style families off.
+# clang-format already owns style, and turning on modernize-*/readability-*
+# wholesale produced ~700 findings that were almost entirely cosmetic — a gate
+# that large gets disabled rather than fixed.
+#
+# Every exclusion below is a check that fires on this codebase for a reason
+# that is deliberate, so each one names its justification. The intent is that
+# this list stays short and auditable, and that the set is tightened as the
+# cosmetic families are worked through.
+Checks: >
+  clang-analyzer-*,
+  bugprone-*,
+  performance-*,
+  portability-*,
+  -clang-analyzer-optin.performance.Padding,
+  -portability-avoid-pragma-once,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-exception-escape,
+  -bugprone-throwing-static-initialization,
+  -bugprone-random-generator-seed
+
+# Why each exclusion:
+#
+#   clang-analyzer-optin.performance.Padding
+#     Reports 206 padding bytes in Engine and 188 in FeedHandler and suggests
+#     a "optimal" field order. That padding is `alignas(kCacheLineSize)` on the
+#     SPSC producer/consumer cursors and the feed buffer, which exists
+#     specifically to keep them on separate cache lines. Taking the analyzer's
+#     advice would compact the struct and reintroduce the false sharing the
+#     design is built to avoid.
+#
+#   portability-avoid-pragma-once
+#     The tree uses `#pragma once` in all 19 headers. Every toolchain in the CI
+#     matrix supports it; converting to include guards would be churn for no
+#     portability gain.
+#
+#   bugprone-easily-swappable-parameters
+#     Fires on numeric constructors like (price, size) and (num, den). Real in
+#     principle, but the fix is a strong-typedef refactor of the wire structs,
+#     which is out of proportion to the risk in a codebase this size.
+#
+#   bugprone-exception-escape
+#   bugprone-throwing-static-initialization
+#     Both fire only on the test and benchmark drivers: `main` in each driver,
+#     and the static `Registrar` objects that the HFT_TEST macro declares to
+#     self-register cases. Neither is engine code and neither is on the hot
+#     path. No noexcept function in include/hft/ triggers either check.
+#
+#   bugprone-random-generator-seed
+#     Fires on the constant seeds in test_book, test_itch and test_histogram.
+#     Those seeds are deliberate: the figure and test pipeline is required to
+#     be deterministic, so a fixed seed is the correct choice and a
+#     nondeterministic one would be the defect.
+
+WarningsAsErrors: '*'
+HeaderFilterRegex: 'include/hft/.*\.hpp$'
+FormatStyle: file

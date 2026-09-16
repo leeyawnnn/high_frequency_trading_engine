@@ -1,0 +1,167 @@
+# Build, test, sanitizer, format and lint gates for hft_engine.
+#
+# Every third-party action is pinned to a commit SHA rather than a tag: a tag
+# is mutable, and a supply-chain compromise of a popular action is the most
+# likely way CI becomes an attack surface. The comment after each SHA records
+# which release it corresponds to.
+name: ci
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+# A new push to the same branch makes the previous run irrelevant.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Build + test matrix.
+  #
+  # The engine's Linux-only code paths (pthread_setaffinity_np, the UDP feed)
+  # are compiled for the first time here: development happened on macOS/ARM, so
+  # the `#if defined(__linux__)` branches had never been through a compiler.
+  # ---------------------------------------------------------------------------
+  build-test:
+    name: ${{ matrix.os }} / ${{ matrix.compiler }} / ${{ matrix.build_type }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        compiler: [gcc, clang]
+        build_type: [Debug, Release]
+        exclude:
+          # `gcc` on a macOS runner is a shim for AppleClang, so this leg would
+          # silently duplicate the clang leg instead of testing GCC.
+          - os: macos-latest
+            compiler: gcc
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+
+      - name: Select compiler
+        run: |
+          if [ "${{ matrix.compiler }}" = "gcc" ]; then
+            echo "CC=gcc"  >> "$GITHUB_ENV"
+            echo "CXX=g++"  >> "$GITHUB_ENV"
+          else
+            echo "CC=clang" >> "$GITHUB_ENV"
+            echo "CXX=clang++" >> "$GITHUB_ENV"
+          fi
+
+      - name: Record toolchain
+        run: |
+          cmake --version | head -1
+          $CXX --version | head -1
+          echo "nproc: $(getconf _NPROCESSORS_ONLN)"
+
+      # -march=native is the project default because it is required for honest
+      # latency numbers, but it is wrong for CI: the runner fleet is
+      # heterogeneous, so a native build tests whichever microarchitecture the
+      # job happened to land on and can emit instructions the next runner
+      # lacks. Correctness gates build portable; measurement runs keep native.
+      - name: Configure
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            -DHFT_NATIVE=OFF \
+            -DHFT_LTO=${{ matrix.build_type == 'Release' && 'ON' || 'OFF' }} \
+            -DHFT_WERROR=ON
+
+      - name: Build
+        run: cmake --build build -j "$(getconf _NPROCESSORS_ONLN)"
+
+      # An explicit per-test timeout on top of the one in tests/CMakeLists.txt:
+      # a hung test must fail the job, never hang it until the 6-hour job cap.
+      - name: Test
+        run: ctest --test-dir build --output-on-failure --timeout 120
+
+  # ---------------------------------------------------------------------------
+  # ASan + UBSan. Non-hot-path only: the sanitizer runtimes make latency
+  # measurement meaningless, so benchmarks and tools are excluded.
+  # ---------------------------------------------------------------------------
+  sanitize:
+    name: asan+ubsan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+      - name: Configure
+        env:
+          CC: clang
+          CXX: clang++
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DHFT_NATIVE=OFF -DHFT_SANITIZE=ON -DHFT_WERROR=ON \
+            -DHFT_BUILD_BENCHMARKS=OFF -DHFT_BUILD_TOOLS=OFF -DHFT_BUILD_APPS=OFF
+      - name: Build
+        run: cmake --build build -j "$(getconf _NPROCESSORS_ONLN)"
+      - name: Test
+        env:
+          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+          ASAN_OPTIONS: detect_leaks=1
+        run: ctest --test-dir build --output-on-failure --timeout 300
+
+  # ---------------------------------------------------------------------------
+  # ThreadSanitizer. This exists primarily for the lock-free SPSC queue: a
+  # memory-ordering bug there is invisible to every other gate in this file.
+  # ---------------------------------------------------------------------------
+  tsan:
+    name: tsan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+      - name: Configure
+        env:
+          CC: clang
+          CXX: clang++
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DHFT_NATIVE=OFF -DHFT_TSAN=ON -DHFT_WERROR=ON \
+            -DHFT_BUILD_BENCHMARKS=OFF -DHFT_BUILD_TOOLS=OFF -DHFT_BUILD_APPS=OFF
+      - name: Build
+        run: cmake --build build -j "$(getconf _NPROCESSORS_ONLN)"
+      - name: Test
+        env:
+          TSAN_OPTIONS: halt_on_error=1:second_deadlock_stack=1
+        run: ctest --test-dir build --output-on-failure --timeout 300
+
+  # ---------------------------------------------------------------------------
+  # Style and lint. Both tools are installed from PyPI at a pinned version:
+  # the distro package tracks whatever LLVM the runner image ships, and a
+  # runner image bump would otherwise show up as a formatting failure on code
+  # nobody touched.
+  # ---------------------------------------------------------------------------
+  format:
+    name: clang-format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+      - run: pip install --quiet clang-format==23.1.1
+      - name: Check formatting
+        run: git ls-files '*.hpp' '*.cpp' | xargs clang-format --dry-run --Werror
+
+  tidy:
+    name: clang-tidy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+      - run: pip install --quiet clang-tidy==22.1.8
+      - name: Configure (compile_commands.json only)
+        env:
+          CC: clang
+          CXX: clang++
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DHFT_NATIVE=OFF -DHFT_LTO=OFF \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+      - name: Lint
+        run: |
+          git ls-files '*.cpp' | xargs clang-tidy -p build --warnings-as-errors='*'
