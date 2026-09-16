@@ -49,6 +49,19 @@ constexpr int kReps = 11;  // odd, so the median is an observation
 constexpr std::uint64_t kIters = 2'000'000;
 constexpr std::size_t kBookTicks = 4096;
 
+// Size of the message stream the loops read from, in messages. Power of two so
+// the index wraps with an AND.
+//
+// This deliberately does NOT scale with kIters. An earlier version generated
+// one message per iteration, so each repetition streamed 2,000,000 x 32 bytes
+// = 64 MB from DRAM, and parse_message measured memory bandwidth rather than
+// parsing: 0.488 ns/msg on a quiet machine against 1.553 ns/msg when the
+// desktop was busy, a 3x swing driven by what else was competing for the
+// memory system. 64Ki messages is 2 MB, which stays cache-resident, so these
+// loops measure the operation rather than the fetch.
+constexpr std::uint64_t kStreamMsgs = 65'536;
+constexpr std::uint64_t kStreamMask = kStreamMsgs - 1;
+
 const char* components_csv_header() {
   return "component,ns_per_op,ns_p25,ns_p75,mops,reps,iters_per_rep,baseline_ns,resolution_ns,"
          "clock_source\n";
@@ -128,6 +141,9 @@ int main() {
   hft::print_clock_report(stdout);
   std::printf("repetitions       : %d (plus 1 discarded warm-up)\n", kReps);
   std::printf("iterations/rep    : %llu\n", static_cast<unsigned long long>(kIters));
+  std::printf("stream working set: %llu msgs (%llu KiB, cache-resident by design)\n",
+              static_cast<unsigned long long>(kStreamMsgs),
+              static_cast<unsigned long long>(kStreamMsgs * hft::kMsgSize / 1024));
   std::printf("================================================================\n\n");
 
   struct Row {
@@ -174,11 +190,12 @@ int main() {
   // --- parse_message --------------------------------------------------------
   {
     const std::vector<std::byte> wire =
-        make_wire_stream(kIters, hft::price_from_double(90.00), hft::kPriceScale / 100);
+        make_wire_stream(kStreamMsgs, hft::price_from_double(90.00), hft::kPriceScale / 100);
     rows.push_back({"parse_message", measure([&] {
                       const std::byte* p = wire.data();
                       for (std::uint64_t i = 0; i < kIters; ++i) {
-                        hft::ItchMessage m = hft::parse_message(p + i * hft::kMsgSize);
+                        hft::ItchMessage m =
+                            hft::parse_message(p + (i & kStreamMask) * hft::kMsgSize);
                         hft::DoNotOptimize(m);
                       }
                     })});
@@ -239,11 +256,12 @@ int main() {
     sp.order_size = 100;
     sp.threshold = 0.30;
     hft::ImbalanceStrategy<kBookTicks> strat(sp);
-    const std::vector<std::byte> wire = make_wire_stream(kIters, sp.base_price, sp.tick);
+    const std::vector<std::byte> wire = make_wire_stream(kStreamMsgs, sp.base_price, sp.tick);
     rows.push_back({"strategy_on_md", measure([&] {
                       for (std::uint64_t i = 0; i < kIters; ++i) {
                         hft::MdEvent ev{};
-                        ev.msg = hft::parse_message(wire.data() + i * hft::kMsgSize);
+                        ev.msg =
+                            hft::parse_message(wire.data() + (i & kStreamMask) * hft::kMsgSize);
                         ev.arrival_tsc = i;
                         strat.on_md(ev, [](const hft::OrderRequest& o) { hft::DoNotOptimize(o); });
                         hft::ClobberMemory();
