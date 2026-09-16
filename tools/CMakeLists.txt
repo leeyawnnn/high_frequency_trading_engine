@@ -12,3 +12,4 @@ endfunction()
 
 hft_add_tool(exchange_sim)
 hft_add_tool(latency_report)
+hft_add_tool(itch50_replay)

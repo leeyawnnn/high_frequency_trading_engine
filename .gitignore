@@ -40,6 +40,11 @@ install_manifest.txt
 .cache/
 compile_commands.json
 
+# Downloaded market data. Nasdaq's sample files are theirs to distribute and a
+# single day is 4.76 GB; scripts/fetch_itch_sample.py fetches a prefix on
+# demand. Nothing under data/ is committed.
+data/
+
 # Python bytecode (reports/plot.py)
 __pycache__/
 
