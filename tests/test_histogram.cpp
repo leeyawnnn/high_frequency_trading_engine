@@ -94,7 +94,8 @@ HFT_TEST(percentiles_match_reference_1M) {
 
   // Percentiles must be monotonic non-decreasing.
   std::uint64_t prev = 0;
-  for (double p = 1.0; p <= 100.0; p += 1.0) {
+  for (int pct = 1; pct <= 100; ++pct) {
+    const double p = static_cast<double>(pct);
     const std::uint64_t v = h.percentile(p);
     CHECK(v >= prev);
     prev = v;

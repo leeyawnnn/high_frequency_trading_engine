@@ -3,13 +3,33 @@
 #include "hft/itch_message.hpp"
 #include "hft/tsc.hpp"
 
+#include <cerrno>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <vector>
+
+namespace {
+
+// Parse an iteration count, refusing anything that is not a positive integer.
+long parse_iterations(const char* s) {
+  char* end = nullptr;
+  errno = 0;
+  const long v = std::strtol(s, &end, 10);
+  if (errno != 0 || end == s || *end != '\0' || v <= 0) {
+    std::fprintf(stderr, "invalid iteration count '%s'; expected a positive integer\n", s);
+    std::exit(2);
+  }
+  return v;
+}
+
+}  // namespace
 
 int main(int argc, char** argv) {
   hft::tsc_calibrate();
-  const int n = (argc > 1) ? std::atoi(argv[1]) : 50'000'000;
+  // atoi cannot report a bad argument: it returns 0, which would run an empty
+  // loop and report an impressive ns/op for having done nothing.
+  const long n = (argc > 1) ? parse_iterations(argv[1]) : 50'000'000L;
 
   const std::int64_t base = hft::price_from_double(90.00);
   const std::int64_t tick = hft::kPriceScale / 100;
@@ -48,8 +68,8 @@ int main(int argc, char** argv) {
   (void)sink;
 
   const double ns = hft::tsc_to_ns(t1 - t0);
-  std::printf("book apply(): %.2f ns/update  %.0f M updates/s  (out_of_range=%llu)\n", ns / n,
-              static_cast<double>(n) / (ns / 1e9) / 1e6,
-              static_cast<unsigned long long>(book.out_of_range()));
+  const double dn = static_cast<double>(n);
+  std::printf("book apply(): %.2f ns/update  %.0f M updates/s  (out_of_range=%llu)\n", ns / dn,
+              dn / (ns / 1e9) / 1e6, static_cast<unsigned long long>(book.out_of_range()));
   return 0;
 }

@@ -10,13 +10,33 @@
 #include "hft/tsc.hpp"
 
 #include <atomic>
+#include <cerrno>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <vector>
+
+namespace {
+
+// Parse an iteration count, refusing anything that is not a positive integer.
+long parse_iterations(const char* s) {
+  char* end = nullptr;
+  errno = 0;
+  const long v = std::strtol(s, &end, 10);
+  if (errno != 0 || end == s || *end != '\0' || v <= 0) {
+    std::fprintf(stderr, "invalid iteration count '%s'; expected a positive integer\n", s);
+    std::exit(2);
+  }
+  return v;
+}
+
+}  // namespace
 
 int main(int argc, char** argv) {
   hft::tsc_calibrate();
-  const int n = (argc > 1) ? std::atoi(argv[1]) : 50'000'000;
+  // atoi cannot report a bad argument: it returns 0, which would run an empty
+  // loop and report an impressive ns/op for having done nothing.
+  const long n = (argc > 1) ? parse_iterations(argv[1]) : 50'000'000L;
 
   std::atomic<bool> kill{false};
   // Generous limits so the accept path is what we measure — but a finite rate
@@ -36,7 +56,7 @@ int main(int argc, char** argv) {
 
   volatile std::uint64_t sink = 0;
   const std::uint64_t t0 = hft::tsc_now_serialized();
-  for (int i = 0; i < n; ++i) {
+  for (long i = 0; i < n; ++i) {
     sink += static_cast<std::uint64_t>(g.check(orders[static_cast<std::size_t>(i & 1)]));
   }
   const std::uint64_t t1 = hft::tsc_now_serialized();
@@ -44,8 +64,9 @@ int main(int argc, char** argv) {
 
   const double ns = hft::tsc_to_ns(t1 - t0);
   std::printf("risk gate check() [all checks, accept path]\n");
-  std::printf("  per check : %.2f ns   (target < 100 ns)\n", ns / n);
-  std::printf("  throughput: %.0f M checks/sec\n", static_cast<double>(n) / (ns / 1e9) / 1e6);
-  std::printf("  accepted  : %llu / %d\n", static_cast<unsigned long long>(g.accepted()), n);
+  const double dn = static_cast<double>(n);
+  std::printf("  per check : %.2f ns   (target < 100 ns)\n", ns / dn);
+  std::printf("  throughput: %.0f M checks/sec\n", dn / (ns / 1e9) / 1e6);
+  std::printf("  accepted  : %llu / %ld\n", static_cast<unsigned long long>(g.accepted()), n);
   return 0;
 }

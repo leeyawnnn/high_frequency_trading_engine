@@ -49,7 +49,10 @@ HFT_TEST(price_fixed_point_roundtrip) {
   CHECK_EQ(hft::price_from_double(123.4500), 1'234'500);
   CHECK_NEAR(hft::price_to_double(1'234'500), 123.45, 1e-9);
   // Round-trip a range of prices through fixed point.
-  for (double px = 0.0001; px < 1000.0; px += 7.3137) {
+  // Driven from an integer so the iteration count is exact and the step does
+  // not accumulate floating-point error across the range.
+  for (int step = 0; step < 137; ++step) {
+    const double px = 0.0001 + 7.3137 * step;
     const std::int64_t fx = hft::price_from_double(px);
     CHECK_NEAR(hft::price_to_double(fx), px, 1e-4);
   }
