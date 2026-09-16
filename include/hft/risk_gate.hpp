@@ -31,7 +31,10 @@ namespace hft {
 enum class RiskResult : std::uint8_t {
   kAccept = 0,
   kKillSwitch,
-  kOrderSize,
+  // Named ...Limit, not kOrderSize: `kOrderSize` is already the 40-byte wire
+  // size of OrderRequest in order_msg.hpp, which this header includes. The
+  // short name shadows it and -Wshadow rejects the translation unit.
+  kOrderSizeLimit,
   kPositionLimit,
   kRateLimit,
 };
@@ -64,7 +67,7 @@ class RiskGate {
     // 2. Order size.
     if (HFT_UNLIKELY(o.size == 0 || o.size > max_order_size_)) {
       ++rej_size_;
-      return RiskResult::kOrderSize;
+      return RiskResult::kOrderSizeLimit;
     }
     // 3. Position limit (projected net position stays within [-max, +max]).
     const std::int64_t signed_sz = (o.side == static_cast<std::uint8_t>(Side::kBuy))

@@ -38,9 +38,9 @@ hft::RiskLimits limits() {
 HFT_TEST(order_size_limit) {
   std::atomic<bool> kill{false};
   hft::RiskGate g(limits(), kill);
-  CHECK(g.check(order(hft::Side::kBuy, 0)) == hft::RiskResult::kOrderSize);    // zero
-  CHECK(g.check(order(hft::Side::kBuy, 501)) == hft::RiskResult::kOrderSize);  // over cap
-  CHECK(g.check(order(hft::Side::kBuy, 500)) == hft::RiskResult::kAccept);     // at cap
+  CHECK(g.check(order(hft::Side::kBuy, 0)) == hft::RiskResult::kOrderSizeLimit);    // zero
+  CHECK(g.check(order(hft::Side::kBuy, 501)) == hft::RiskResult::kOrderSizeLimit);  // over cap
+  CHECK(g.check(order(hft::Side::kBuy, 500)) == hft::RiskResult::kAccept);          // at cap
   CHECK_EQ(g.rejected_size(), 2u);
 }
 
