@@ -1,22 +1,22 @@
-latency_report: rate=100000 msg/s batch=4 duration=4000ms (cores feed=-1 strat=-1 gw=-1 exch=-1)
+latency_report: rate=100000 msg/s batch=4 duration=4000ms (cores feed=-1 strat=-1 gw=-1 exch=-1 wait=spin)
 
-throughput: exchange sent 400200 feed msgs, engine processed 400200, orders sent 32070, fills matched 32070
+throughput: exchange sent 400542 feed msgs, engine processed 400542, orders sent 36643, fills matched 36643
 
 ==================== measurement conditions ====================
 clock source      : arm-cntvct-el0
-measured frequency: 999.993200 MHz
+measured frequency: 999.985000 MHz
 nominal frequency : 1000.000000 MHz (hardware cntfrq_el0)
-calibration drift : -0.001%
+calibration drift : -0.002%
 tick period       : 1.000 ns
 reporting floor   : 2 ns (2 ticks; finer values print as "<floor")
 
 ==================== latency report (nanoseconds) ====================
-  feed handler       n=400200     p50=<2      p90=42      p99=83       p99.9=1087     max=20875     mean=11
-  strategy           n=400200     p50=423     p90=1375    p99=7935     p99.9=15359    max=536779    mean=733
-  gateway            n=32070      p50=<2      p90=41      p99=83       p99.9=125      max=15625     mean=7
+  feed handler       n=400542     p50=<2      p90=41      p99=42       p99.9=799      max=86762     mean=8
+  strategy           n=400542     p50=375     p90=671     p99=1215     p99.9=7935     max=2728146   mean=343
+  gateway            n=36643      p50=<2      p90=<2      p99=42       p99.9=125      max=27142     mean=5
   ------------------------------------------------------------------
-  END-TO-END         n=32070      p50=9727    p90=50175   p99=180223   p99.9=2359295  max=10051244  mean=27122
-  round trip         n=32070      p50=45055   p90=86015   p99=237567   p99.9=2424831  max=10094053  mean=60153
+  END-TO-END         n=36643      p50=1215    p90=2303    p99=17919    p99.9=92159    max=2964457   mean=2193
+  round trip         n=36643      p50=21503   p90=45055   p99=79871    p99.9=229375   max=5101595   mean=26718
 ======================================================================
 
 CSV written to reports/data/

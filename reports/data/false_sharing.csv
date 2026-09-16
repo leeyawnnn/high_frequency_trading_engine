@@ -1,3 +1,3 @@
 variant,mops,reps,items_per_run,cache_line_bytes,hardware_threads,pinned
-padded (cache-line separated),41.5,5,20000000,128,10,no
-unpadded (false sharing),105.9,5,20000000,128,10,no
+padded (cache-line separated),26.9,5,20000000,128,10,no
+unpadded (false sharing),112.7,5,20000000,128,10,no

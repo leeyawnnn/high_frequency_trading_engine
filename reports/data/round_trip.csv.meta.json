@@ -1,0 +1,13 @@
+{
+  "artifact": "reports/data/round_trip.csv",
+  "command": "build/tools/latency_report --duration-ms 4000 --rate 100000 --batch 4 --wait spin --csv-dir reports/data",
+  "git_commit": "859863124dea82e13024d5e5cb832c90589194ca (working tree dirty)",
+  "generated_utc": "2026-09-16T05:17:33Z",
+  "machine": {
+    "cpu": "Apple M4",
+    "logical_cores": 10,
+    "os": "macOS 26.6.1 (arm64)",
+    "load_average_at_start": "6.50 7.38 35.00"
+  },
+  "note": "Synthetic market data from the bundled SimExchange, not a live venue. See README 'Measurement methodology and its limits'."
+}

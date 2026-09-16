@@ -1,7 +1,7 @@
 component,ns_per_op,ns_p25,ns_p75,mops,reps,iters_per_rep,baseline_ns,resolution_ns,clock_source
-tsc_now,0.243,0.226,0.252,4108,11,2000000,0.244,1.000,arm-cntvct-el0
-parse_message,0.373,0.371,0.385,2682,11,2000000,0.244,1.000,arm-cntvct-el0
-risk_gate_check,0.318,0.318,0.326,3143,11,2000000,0.244,1.000,arm-cntvct-el0
-histogram_record,1.777,1.763,1.782,563,11,2000000,0.244,1.000,arm-cntvct-el0
-book_apply,4.104,4.084,4.129,244,11,2000000,0.244,1.000,arm-cntvct-el0
-strategy_on_md,4.100,3.908,4.236,244,11,2000000,0.244,1.000,arm-cntvct-el0
+tsc_now,0.292,0.289,0.303,3430,11,2000000,0.313,1.000,arm-cntvct-el0
+parse_message,0.411,0.400,0.436,2433,11,2000000,0.313,1.000,arm-cntvct-el0
+risk_gate_check,0.332,0.327,0.339,3014,11,2000000,0.313,1.000,arm-cntvct-el0
+histogram_record,1.785,1.780,1.799,560,11,2000000,0.313,1.000,arm-cntvct-el0
+book_apply,4.201,4.147,4.236,238,11,2000000,0.313,1.000,arm-cntvct-el0
+strategy_on_md,4.546,4.104,4.576,220,11,2000000,0.313,1.000,arm-cntvct-el0
