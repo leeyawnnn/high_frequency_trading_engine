@@ -42,10 +42,25 @@ int main(int argc, char** argv) {
   const int exch_core = static_cast<int>(arg_long(argc, argv, "--exch-core", -1));
   const char* csv_dir = arg_str(argc, argv, "--csv-dir", nullptr);
 
+  // How the stages wait when idle. This moves the latency numbers materially,
+  // so it is an explicit flag and it is printed with the results rather than
+  // left implicit.
+  const char* wait_name = arg_str(argc, argv, "--wait", "adaptive");
+  hft::WaitPolicy wait_policy = hft::WaitPolicy::kAdaptive;
+  if (std::strcmp(wait_name, "spin") == 0) {
+    wait_policy = hft::WaitPolicy::kSpin;
+  } else if (std::strcmp(wait_name, "yield") == 0) {
+    wait_policy = hft::WaitPolicy::kYield;
+  } else if (std::strcmp(wait_name, "adaptive") != 0) {
+    std::fprintf(stderr, "unknown --wait '%s'; expected spin, yield or adaptive\n", wait_name);
+    return 2;
+  }
+
   hft::tsc_calibrate();
 
   // 1. Build the engine on ephemeral feed/fill ports.
   hft::EngineConfig ecfg;
+  ecfg.wait_policy = wait_policy;
   ecfg.feed_core = feed_core;
   ecfg.strategy_core = strat_core;
   ecfg.gateway_core = gw_core;
@@ -77,8 +92,9 @@ int main(int argc, char** argv) {
 
   std::printf(
       "latency_report: rate=%ld msg/s batch=%ld duration=%ldms "
-      "(cores feed=%d strat=%d gw=%d exch=%d)\n",
-      rate, batch, duration_ms, feed_core, strat_core, gw_core, exch_core);
+      "(cores feed=%d strat=%d gw=%d exch=%d wait=%s)\n",
+      rate, batch, duration_ms, feed_core, strat_core, gw_core, exch_core,
+      hft::to_string(wait_policy));
 
   // 4. Run.
   std::atomic<bool> exch_running{true};

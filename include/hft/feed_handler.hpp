@@ -22,6 +22,7 @@
 #include "hft/itch_parser.hpp"
 #include "hft/net.hpp"
 #include "hft/tsc.hpp"
+#include "hft/wait_policy.hpp"
 
 namespace hft {
 
@@ -69,7 +70,8 @@ class FeedHandler {
   }
 
   // Pin to `core`, then busy-poll until `running` clears.
-  void run(const std::atomic<bool>& running, int core);
+  void run(const std::atomic<bool>& running, int core,
+           WaitPolicy wait_policy = WaitPolicy::kAdaptive);
 
   // ---- stats / reporting (cold path) -------------------------------------
   std::uint64_t received() const noexcept { return received_; }
@@ -101,14 +103,14 @@ class FeedHandler {
 }  // namespace hft
 
 #include "hft/affinity.hpp"
-#include "hft/wait_policy.hpp"
 
 namespace hft {
 
 template <typename OutQueue>
-void FeedHandler<OutQueue>::run(const std::atomic<bool>& running, int core) {
+void FeedHandler<OutQueue>::run(const std::atomic<bool>& running, int core,
+                                WaitPolicy wait_policy) {
   const AffinityResult pin = pin_and_name_thread(core, "hft-feed");
-  WaitStrategy wait(pin.ok());
+  WaitStrategy wait(wait_policy, pin.ok());
   while (running.load(std::memory_order_relaxed)) {
     if (poll_once() > 0) {
       wait.reset();

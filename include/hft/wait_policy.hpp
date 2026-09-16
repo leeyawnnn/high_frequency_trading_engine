@@ -52,16 +52,45 @@ HFT_ALWAYS_INLINE void cpu_relax() noexcept {
 // arrival stream is served without ever reaching the yield.
 inline constexpr std::uint32_t kSpinsBeforeYield = 64;
 
+// How a stage should behave when it finds no work.
+enum class WaitPolicy : std::uint8_t {
+  // Spin iff the thread actually got the core it asked for. The default:
+  // right on an isolated core, and safe on a shared one.
+  kAdaptive = 0,
+  // Always spin. Lowest latency when a core is genuinely free, and the policy
+  // a measurement run should use deliberately -- but it collapses throughput
+  // on an oversubscribed machine, so it is opt-in rather than implied.
+  kSpin,
+  // Always back off. Useful when the engine shares cores with other work and
+  // latency matters less than not starving the rest of the box.
+  kYield,
+};
+
+[[nodiscard]] inline const char* to_string(WaitPolicy p) noexcept {
+  switch (p) {
+    case WaitPolicy::kAdaptive:
+      return "adaptive";
+    case WaitPolicy::kSpin:
+      return "spin";
+    case WaitPolicy::kYield:
+      return "yield";
+  }
+  return "unknown";
+}
+
 class WaitStrategy {
  public:
   // `pinned` should be the actual outcome of the pin request, not the
   // intention. Asking for a core and not getting one is exactly the case where
   // spinning does damage.
-  explicit WaitStrategy(bool pinned) noexcept : pinned_(pinned) {}
+  WaitStrategy(WaitPolicy policy, bool pinned) noexcept
+      : spin_only_(policy == WaitPolicy::kSpin || (policy == WaitPolicy::kAdaptive && pinned)) {}
+
+  explicit WaitStrategy(bool pinned) noexcept : WaitStrategy(WaitPolicy::kAdaptive, pinned) {}
 
   // Call when a poll found no work.
   HFT_ALWAYS_INLINE void idle() noexcept {
-    if (pinned_) {
+    if (spin_only_) {
       cpu_relax();
       return;
     }
@@ -77,10 +106,10 @@ class WaitStrategy {
   // from the top instead of yielding immediately.
   HFT_ALWAYS_INLINE void reset() noexcept { spins_ = 0; }
 
-  [[nodiscard]] bool spins_only() const noexcept { return pinned_; }
+  [[nodiscard]] bool spins_only() const noexcept { return spin_only_; }
 
  private:
-  bool pinned_;
+  bool spin_only_;
   std::uint32_t spins_{0};
 };
 

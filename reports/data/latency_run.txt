@@ -1,14 +1,22 @@
 latency_report: rate=100000 msg/s batch=4 duration=4000ms (cores feed=-1 strat=-1 gw=-1 exch=-1)
 
-throughput: exchange sent 400106 feed msgs, engine processed 400106, orders sent 35925, fills matched 35925
+throughput: exchange sent 400200 feed msgs, engine processed 400200, orders sent 32070, fills matched 32070
+
+==================== measurement conditions ====================
+clock source      : arm-cntvct-el0
+measured frequency: 999.993200 MHz
+nominal frequency : 1000.000000 MHz (hardware cntfrq_el0)
+calibration drift : -0.001%
+tick period       : 1.000 ns
+reporting floor   : 2 ns (2 ticks; finer values print as "<floor")
 
 ==================== latency report (nanoseconds) ====================
-  feed handler       n=400106     p50=0      p90=42     p99=83      p99.9=927     max=39810    mean=10
-  strategy           n=400106     p50=399    p90=719    p99=1279    p99.9=8703    max=429166   mean=352
-  gateway            n=35925      p50=0      p90=0      p99=42      p99.9=85      max=250      mean=3
+  feed handler       n=400200     p50=<2      p90=42      p99=83       p99.9=1087     max=20875     mean=11
+  strategy           n=400200     p50=423     p90=1375    p99=7935     p99.9=15359    max=536779    mean=733
+  gateway            n=32070      p50=<2      p90=41      p99=83       p99.9=125      max=15625     mean=7
   ------------------------------------------------------------------
-  END-TO-END         n=35925      p50=1343   p90=2495   p99=15359   p99.9=44031   max=4172394  mean=2325
-  round trip         n=35925      p50=21503  p90=50175  p99=73727   p99.9=122879  max=4208954  mean=28180
+  END-TO-END         n=32070      p50=9727    p90=50175   p99=180223   p99.9=2359295  max=10051244  mean=27122
+  round trip         n=32070      p50=45055   p90=86015   p99=237567   p99.9=2424831  max=10094053  mean=60153
 ======================================================================
 
 CSV written to reports/data/

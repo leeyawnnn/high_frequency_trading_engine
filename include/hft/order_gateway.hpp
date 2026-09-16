@@ -27,6 +27,7 @@
 #include "hft/order_msg.hpp"
 #include "hft/risk_gate.hpp"
 #include "hft/tsc.hpp"
+#include "hft/wait_policy.hpp"
 
 namespace hft {
 
@@ -90,7 +91,8 @@ class OrderGateway {
     return true;
   }
 
-  void run(const std::atomic<bool>& running, int core);
+  void run(const std::atomic<bool>& running, int core,
+           WaitPolicy wait_policy = WaitPolicy::kAdaptive);
 
   // ---- inspection ---------------------------------------------------------
   std::uint64_t sent() const noexcept { return sent_; }
@@ -147,15 +149,14 @@ class OrderGateway {
 }  // namespace hft
 
 #include "hft/affinity.hpp"
-#include "hft/wait_policy.hpp"
 
 namespace hft {
 
 template <typename OrderQueue, typename FillQueue, std::size_t InFlightCapacity>
 void OrderGateway<OrderQueue, FillQueue, InFlightCapacity>::run(const std::atomic<bool>& running,
-                                                                int core) {
+                                                                int core, WaitPolicy wait_policy) {
   const AffinityResult pin = pin_and_name_thread(core, "hft-gw");
-  WaitStrategy wait(pin.ok());
+  WaitStrategy wait(wait_policy, pin.ok());
   while (running.load(std::memory_order_relaxed)) {
     if (poll_once()) {
       wait.reset();

@@ -29,6 +29,7 @@
 #include "hft/itch_message.hpp"
 #include "hft/order_msg.hpp"
 #include "hft/tsc.hpp"
+#include "hft/wait_policy.hpp"
 
 namespace hft {
 
@@ -156,7 +157,8 @@ class StrategyRunner {
     return true;
   }
 
-  void run(const std::atomic<bool>& running, int core);
+  void run(const std::atomic<bool>& running, int core,
+           WaitPolicy wait_policy = WaitPolicy::kAdaptive);
 
   ImbalanceStrategy<NumTicks>& strategy() noexcept { return strat_; }
   const ImbalanceStrategy<NumTicks>& strategy() const noexcept { return strat_; }
@@ -177,15 +179,14 @@ class StrategyRunner {
 }  // namespace hft
 
 #include "hft/affinity.hpp"
-#include "hft/wait_policy.hpp"
 
 namespace hft {
 
 template <std::size_t NumTicks, typename FeedQ, typename OrderQ, typename FillQ>
-void StrategyRunner<NumTicks, FeedQ, OrderQ, FillQ>::run(const std::atomic<bool>& running,
-                                                         int core) {
+void StrategyRunner<NumTicks, FeedQ, OrderQ, FillQ>::run(const std::atomic<bool>& running, int core,
+                                                         WaitPolicy wait_policy) {
   const AffinityResult pin = pin_and_name_thread(core, "hft-strat");
-  WaitStrategy wait(pin.ok());
+  WaitStrategy wait(wait_policy, pin.ok());
   while (running.load(std::memory_order_relaxed)) {
     if (poll_once()) {
       wait.reset();

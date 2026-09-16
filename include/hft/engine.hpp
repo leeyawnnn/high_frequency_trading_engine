@@ -24,10 +24,17 @@
 #include "hft/risk_gate.hpp"
 #include "hft/spsc_queue.hpp"
 #include "hft/strategy.hpp"
+#include "hft/wait_policy.hpp"
 
 namespace hft {
 
 struct EngineConfig {
+  // What a stage does when it finds no work. Default kAdaptive: spin only on a
+  // thread that actually got the core it asked for. A measurement run on a
+  // machine with cores to spare should set kSpin deliberately and say so in
+  // the report, because the choice moves the latency numbers materially.
+  WaitPolicy wait_policy = WaitPolicy::kAdaptive;
+
   // Core pinning (-1 = unpinned).
   int feed_core = -1;
   int strategy_core = -1;
@@ -82,9 +89,10 @@ class Engine {
 
   void start() {
     running_.store(true, std::memory_order_relaxed);
-    feed_thread_ = std::thread([this] { feed_.run(running_, cfg_.feed_core); });
-    strat_thread_ = std::thread([this] { strat_.run(running_, cfg_.strategy_core); });
-    gw_thread_ = std::thread([this] { gw_.run(running_, cfg_.gateway_core); });
+    feed_thread_ = std::thread([this] { feed_.run(running_, cfg_.feed_core, cfg_.wait_policy); });
+    strat_thread_ =
+        std::thread([this] { strat_.run(running_, cfg_.strategy_core, cfg_.wait_policy); });
+    gw_thread_ = std::thread([this] { gw_.run(running_, cfg_.gateway_core, cfg_.wait_policy); });
   }
 
   void stop() {
