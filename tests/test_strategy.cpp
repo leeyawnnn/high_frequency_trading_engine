@@ -56,7 +56,7 @@ HFT_TEST(bid_heavy_triggers_buy_at_bid) {
   feed(s, ev(hft::MsgType::kAdd, hft::Side::kBuy, 100.00, 900, 11));
   // Adding the ask makes the book two-sided; imbalance = (900-100)/1000 = 0.8.
   auto o = feed(s, ev(hft::MsgType::kAdd, hft::Side::kSell, 100.01, 100, 22));
-  CHECK(o.has_value());
+  REQUIRE(o.has_value());
   CHECK_EQ(o->side, static_cast<std::uint8_t>(hft::Side::kBuy));
   CHECK_EQ(o->price, hft::price_from_double(100.00));  // buy AT THE BID
   CHECK_EQ(o->size, 100u);
@@ -78,7 +78,7 @@ HFT_TEST(fill_updates_position_then_opposite_signal_flattens) {
   hft::ImbalanceStrategy<N> s(params());
   feed(s, ev(hft::MsgType::kAdd, hft::Side::kBuy, 100.00, 900, 1));
   auto buy = feed(s, ev(hft::MsgType::kAdd, hft::Side::kSell, 100.01, 100, 2));
-  CHECK(buy.has_value());
+  REQUIRE(buy.has_value());
 
   // Fill the buy -> long 100, no longer in flight.
   hft::ExecReport f{};
@@ -91,7 +91,7 @@ HFT_TEST(fill_updates_position_then_opposite_signal_flattens) {
   // Make the book ask-heavy by shrinking the bid: imbalance (50-100)/150 = -0.33
   // < -0.30. The Execute is re-evaluated immediately, so the SELL fires on it.
   auto sell = feed(s, ev(hft::MsgType::kExecute, hft::Side::kBuy, 100.00, 850, 3));  // bid -> 50
-  CHECK(sell.has_value());
+  REQUIRE(sell.has_value());
   CHECK_EQ(sell->side, static_cast<std::uint8_t>(hft::Side::kSell));
   CHECK_EQ(sell->price, hft::price_from_double(100.01));  // sell AT THE ASK
 

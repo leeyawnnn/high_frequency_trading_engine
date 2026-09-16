@@ -78,6 +78,21 @@ inline int run_all() {
     if (!(cond)) ::hft::test::report_failure(__FILE__, __LINE__, "CHECK(" #cond ")"); \
   } while (0)
 
+// Fatal assertion: report and abandon the current case.
+//
+// CHECK records a failure and carries on, which is right for independent
+// value checks but wrong for a precondition that the rest of the case
+// dereferences -- a failed CHECK(opt.has_value()) followed by *opt is
+// undefined behaviour, so the case crashes instead of reporting. Use REQUIRE
+// wherever continuing past a false condition is not meaningful.
+#define REQUIRE(cond)                                                        \
+  do {                                                                       \
+    if (!(cond)) {                                                           \
+      ::hft::test::report_failure(__FILE__, __LINE__, "REQUIRE(" #cond ")"); \
+      return;                                                                \
+    }                                                                        \
+  } while (0)
+
 #define CHECK_EQ(a, b)                                                                     \
   do {                                                                                     \
     auto _va = (a);                                                                        \
